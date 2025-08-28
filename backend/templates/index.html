@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Complaint Solution</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(120deg, #e0eafc 0%, #cfdef3 100%);
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 420px;
+            margin: 60px auto;
+            background: #fff;
+            padding: 36px 28px 28px 28px;
+            border-radius: 16px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.10);
+        }
+        h2 {
+            text-align: center;
+            color: #0078d7;
+            margin-bottom: 18px;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+        label {
+            display: block;
+            margin-top: 18px;
+            color: #444;
+            font-size: 1.05em;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 10px;
+            margin-top: 7px;
+            border: 1px solid #bcdffb;
+            border-radius: 6px;
+            font-size: 1em;
+            background: #f7fbff;
+            transition: border-color 0.2s;
+        }
+        input:focus, textarea:focus {
+            border-color: #0078d7;
+            outline: none;
+        }
+        button {
+            margin-top: 24px;
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(90deg, #0078d7 60%, #00c6fb 100%);
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            font-size: 1.08em;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,120,215,0.08);
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: linear-gradient(90deg, #005fa3 60%, #00a6d7 100%);
+        }
+        .solution {
+            margin-top: 28px;
+            padding: 20px 18px;
+            background: #f0f8ff;
+            border-radius: 8px;
+            color: #222;
+            font-size: 1.08em;
+            box-shadow: 0 2px 8px rgba(0,120,215,0.07);
+            border-left: 4px solid #0078d7;
+            animation: fadeIn 0.5s;
+        }
+        .solution strong {
+            color: #0078d7;
+            font-weight: 600;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Customer Complaint Solution</h2>
+        <form id="complaintForm">
+            <label for="msisdn">MSISDN:</label>
+            <input type="text" id="msisdn" name="msisdn" required placeholder="Enter MSISDN">
+            <label for="complaint">Complaint:</label>
+            <textarea id="complaint" name="complaint" rows="3" required placeholder="Describe your complaint"></textarea>
+            <button type="submit">Get Solution</button>
+        </form>
+        <div id="solution" class="solution" style="display:none;"></div>
+    </div>
+    <script>
+        document.getElementById('complaintForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            const msisdn = document.getElementById('msisdn').value;
+            const complaint = document.getElementById('complaint').value;
+            const solutionDiv = document.getElementById('solution');
+            solutionDiv.style.display = 'none';
+            solutionDiv.innerHTML = '';
+            try {
+                const response = await fetch('/api/solution', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ msisdn, complaint })
+                });
+                const data = await response.json();
+                if (data.solution) {
+                    solutionDiv.innerHTML = `<strong>Solution:</strong> <br>${data.solution}`;
+                } else {
+                    solutionDiv.innerHTML = `<strong>No solution found.</strong>`;
+                }
+                solutionDiv.style.display = 'block';
+            } catch (err) {
+                solutionDiv.innerHTML = '<strong>Error fetching solution.</strong>';
+                solutionDiv.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>
