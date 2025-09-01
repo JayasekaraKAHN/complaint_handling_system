@@ -5,77 +5,84 @@ from .classifier import classify_complaint
 import os
 import pandas as pd
 
-def generate_solution(msisdn: str = "", complaint_text: str | None = None) -> str:
+def generate_solution(
+    msisdn: str = "",
+    complaint_text: str | None = None,
+    location: str | None = None,
+    site_alarm: str | None = None,
+    kpi: str | None = None,
+    billing: str | None = None
+) -> str:
+    """
+    Generates a personalized telecom complaint solution.
+    """
     context = get_customer_context(msisdn)
 
-    # Determine complaint text priority: payload > customer's latest historical complaint
+    # Use latest historical complaint if no current complaint_text
     if not complaint_text:
         if context.get("complaints"):
-            last = context["complaints"][-1]
-            complaint_text = last.get("Complaint") or ""
+            complaint_text = context["complaints"][-1].get("Complaint", "")
         else:
             complaint_text = ""
 
     complaint_type = classify_complaint(complaint_text or "")
 
-    # Retrieve similar solutions from KB using complaint text
+    # Retrieve similar solutions from KB
     similar = retrieve_similar_solutions(complaint_text or "", k=3)
     similar_formatted = "\n- ".join(similar) if similar else "None available"
 
-
-    # Extract fields for prompt
+    # Extract fields for prompt from context
     usage_info = context.get("usage", [{}])[0] if context.get("usage") else {}
     complaint_info = context.get("complaints", [{}])[0] if context.get("complaints") else {}
 
     prompt = SOLUTION_PROMPT.format(
         msisdn=msisdn or "Unknown",
-        received_date=complaint_info.get("Received Date") or complaint_info.get("received_date") or "Unknown",
-        lon=usage_info.get("Lon") or usage_info.get("lon") or "Unknown",
-        lat=usage_info.get("Lat") or usage_info.get("lat") or "Unknown",
-        issue_description=complaint_text or complaint_info.get("Complaint") or "Unknown",
-        device_info=usage_info.get("Device Info") or usage_info.get("device_info") or "Unknown",
-        signal_strength=usage_info.get("Signal Strength") or usage_info.get("signal_strength") or "Unknown",
-        signal_quality=usage_info.get("Signal Quality") or usage_info.get("signal_quality") or "Unknown",
+        received_date=complaint_info.get("Received Date") or "Unknown",
+        lon=usage_info.get("Lon") or "Unknown",
+        lat=usage_info.get("Lat") or "Unknown",
+        issue_description=complaint_text or "Unknown",
+        device_info=usage_info.get("Device Info") or "Unknown",
+        signal_strength=usage_info.get("Signal Strength") or "Unknown",
+        signal_quality=usage_info.get("Signal Quality") or "Unknown",
         complaint_type=complaint_type,
-        site_kpi=usage_info.get("Site KPI/Alarm") or usage_info.get("site_kpi") or "Unknown",
+        site_kpi=site_alarm or kpi or usage_info.get("Site KPI/Alarm") or "Unknown",
         previous_complaints="\n".join([str(c.get("Complaint", "")) for c in context.get("complaints", [])]) or "None",
         similar_solutions=similar_formatted
     )
 
+    # Optional: append additional fields like location or billing
+    extra_info = []
+    if location:
+        extra_info.append(f"Location info: {location}")
+    if billing:
+        extra_info.append(f"Billing info: {billing}")
+    if extra_info:
+        prompt += "\n\nAdditional Info:\n" + "\n".join(extra_info)
 
-    # Check Complains_Soulutions.csv for direct complaint match (ignore MSISDN and fuzzy matching)
+    # Check Complains_Soulutions.csv for direct match
     complaints_path = os.path.join(os.path.dirname(__file__), '..', 'data', 'Complains_Soulutions.csv')
     try:
         try:
             dfc = pd.read_csv(complaints_path, encoding='utf-8')
         except UnicodeDecodeError:
             dfc = pd.read_csv(complaints_path, encoding='latin1')
+
         if complaint_text:
             for idx, row in dfc.iterrows():
-                comp = row['Issue Description'] if 'Issue Description' in row else row.get('Complaint', '')
-                sol = row['Solution'] if 'Solution' in row else ''
-                quality = row['Qulity of Signal'] if 'Qulity of Signal' in row else ''
-                site_kpi = row['Site KPI/Alarm'] if 'Site KPI/Alarm' in row else ''
-                past_data = row['Past Data analysis'] if 'Past Data analysis' in row else ''
-                coverage_issue = row['Indoor/Outdoor coverage issue'] if 'Indoor/Outdoor coverage issue' in row else ''
-                # Direct match (case-insensitive, strip whitespace)
-                if comp and sol and comp.strip().lower() == complaint_text.strip().lower() and sol.strip():
-                    details = []
-                    if quality: details.append(f"Quality of Signal: {quality}")
-                    if site_kpi: details.append(f"Site KPI/Alarm: {site_kpi}")
-                    if past_data: details.append(f"Past Data analysis: {past_data}")
-                    if coverage_issue: details.append(f"Indoor/Outdoor coverage issue: {coverage_issue}")
-                    extra = "\n".join(details)
-                    return f"Solution: {sol.strip()}" + (f"\n{extra}" if extra else "")
-    except Exception as e:
-        error_msg = f"Error reading Complains_Soulutions.csv: {e}"
-        print(error_msg)
-        return str(error_msg)
+                comp = row.get('Issue Description', row.get('Complaint', '')).strip()
+                sol = row.get('Solution', '').strip()
+                if comp.lower() == complaint_text.strip().lower() and sol:
+                    return f"Solution: {sol}"
 
-    # If no exact match, use AI solution
-    ai = query_ollama(prompt)
-    if isinstance(ai, str) and ai.lower().startswith("error:"):
+    except Exception as e:
+        print(f"Error reading Complains_Soulutions.csv: {e}")
+        return f"Error reading solutions file: {e}"
+
+    # If no exact match, use AI
+    ai_solution = query_ollama(prompt)
+    if isinstance(ai_solution, str) and ai_solution.lower().startswith("error:"):
         if similar:
             return "\n".join(["Suggested steps (KB-based):"] + [f"- {s}" for s in similar])
-        return "We couldn't reach the AI model right now. Please try again, and meanwhile follow standard troubleshooting: reboot device, check APN, verify signal (RSRP/RSRQ), and escalate if persists."
-    return ai
+        return "AI model unavailable. Follow standard troubleshooting: reboot device, check APN, verify signal, escalate if persists."
+
+    return ai_solution
