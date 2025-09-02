@@ -6,8 +6,72 @@ from sklearn.model_selection import train_test_split
 from sklearn.cluster import KMeans
 import joblib
 import os
+import pickle
+import json
+from typing import Dict, List, Optional
 
-MODEL_PATH = "app/models/complaint_classifier.pkl"
+MODEL_PATH = "models/complaint_classifier.pkl"
+PATTERNS_PATH = "models/patterns.json"
+
+def load_retrained_model():
+    """Load the retrained model and patterns"""
+    try:
+        # Load the classifier model
+        with open(MODEL_PATH, 'rb') as f:
+            model = pickle.load(f)
+        
+        # Load patterns
+        with open(PATTERNS_PATH, 'r') as f:
+            patterns = json.load(f)
+        
+        return model, patterns
+    except FileNotFoundError:
+        print("⚠️ Retrained model not found, falling back to basic classification")
+        return None, None
+
+def classify_complaint_with_retrained_model(complaint_text: str) -> str:
+    """Classify complaint using the retrained model"""
+    model, patterns = load_retrained_model()
+    
+    if model is None:
+        return classify_complaint(complaint_text)  # Fallback to old method
+    
+    try:
+        # Use the retrained model for prediction
+        prediction = model.predict([complaint_text])[0]
+        return prediction
+    except Exception as e:
+        print(f"Error with retrained model: {e}")
+        return classify_complaint(complaint_text)  # Fallback
+
+def get_solution_from_patterns(complaint_text: str, device_info: str = "", site_info: str = "") -> Optional[str]:
+    """Get solution using extracted patterns from retraining"""
+    model, patterns = load_retrained_model()
+    
+    if patterns is None:
+        return None
+    
+    # Combine text for matching
+    combined_text = f"{complaint_text} {device_info} {site_info}".lower().strip()
+    
+    # Check exact mappings first
+    solution_mappings = patterns.get('solution_mappings', {})
+    if combined_text in solution_mappings:
+        return solution_mappings[combined_text]
+    
+    # Check device patterns
+    device_patterns = patterns.get('device_patterns', {})
+    for device, solution in device_patterns.items():
+        if device.lower() in combined_text:
+            return solution
+    
+    # Check site patterns
+    site_patterns = patterns.get('site_patterns', {})
+    for site, solution in site_patterns.items():
+        if site.lower() in combined_text:
+            return solution
+    
+    return None
 
 def train_classifier(data_path: str):
     # Try UTF-8 first, fall back to ISO-8859-1 if it fails

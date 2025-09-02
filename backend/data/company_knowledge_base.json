@@ -1,0 +1,187 @@
+{
+  "company_profile": {
+    "total_complaints_analyzed": 46,
+    "analysis_date": "2025-09-02T14:29:32.436833",
+    "data_source": "datafinal.csv"
+  },
+  "network_infrastructure": {
+    "common_site_issues": {
+      "No issue": "24",
+      "No Issue": "7",
+      "Abnormal KPIs for KLPOR5": "3",
+      "Live KPI; No KPI issue": "1",
+      "Cell unavailability KLPET1": "1",
+      "Recurrent Alarms at QBTPP1": "1",
+      "Site Down Alarm": "1",
+      "Live KPI; No issue": "1",
+      "No KPI issue KUWEL1": "1",
+      "No Cell KPI issue": "1"
+    },
+    "critical_sites": [
+      "No issue",
+      "No Issue",
+      "Abnormal KPIs for KLPOR5",
+      "Live KPI; No KPI issue",
+      "Cell unavailability KLPET1"
+    ]
+  },
+  "device_compatibility": {
+    "-": {
+      "voice_issues": 1
+    },
+    "All devices": {
+      "coverage_issues": 3,
+      "voice_issues": 3
+    },
+    "B311 router": {
+      "coverage_issues": 1
+    },
+    "Dongle": {
+      "data_issues": 3
+    },
+    "Huawei Router": {
+      "coverage_issues": 1
+    },
+    "Mobile Device": {
+      "voice_issues": 3,
+      "data_issues": 1
+    },
+    "Mobile Phone": {
+      "voice_issues": 1
+    },
+    "Mobile device": {
+      "voice_issues": 2,
+      "data_issues": 1
+    },
+    "Mobile devices": {
+      "voice_issues": 5
+    },
+    "Mobitel device": {
+      "voice_issues": 2,
+      "coverage_issues": 1
+    },
+    "POS Machine": {},
+    "Router": {
+      "data_issues": 2
+    },
+    "S10 router": {
+      "coverage_issues": 1,
+      "data_issues": 1
+    },
+    "S10 router SIM connection": {
+      "data_issues": 1
+    },
+    "Smart Phone": {
+      "data_issues": 1
+    },
+    "Smart Phones": {
+      "voice_issues": 1
+    },
+    "Unknown device": {},
+    "ZLT M30 Pocket router": {},
+    "ZLT M30 Pocket routers": {
+      "data_issues": 2
+    }
+  },
+  "coverage_patterns": {
+    "complaints_by_district": {
+      "CO": 8,
+      "GM": 1,
+      "KG": 1,
+      "KL": 3,
+      "KU": 1,
+      "KY": 4,
+      "ML": 2,
+      "MO": 1,
+      "NU": 1,
+      "PT": 1
+    },
+    "weak_signal_by_district": {
+      "CO": 0,
+      "GM": 0,
+      "KG": 0,
+      "KL": 0,
+      "KU": 0,
+      "KY": 0,
+      "ML": 0,
+      "MO": 0,
+      "NU": 0,
+      "PT": 0
+    }
+  },
+  "service_quality_metrics": {
+    "signal_strength_distribution": {
+      "Good": "4",
+      "Serving cell - KLPOR5G RSRP -87 to -94 dBm": "3",
+      "No coverage": "2",
+      "Serving cell - KUNIK1H / KUNIK1-M-L21-B1 RSRP -91 to -102  dBm": "2",
+      "Serving cell QKYRP2W RSCP -100 to -108 dBm": "2",
+      "Serving Cell - LCC087G RSRP -99 to -103 dBm  Serving Cell - LCC086H RSRP -99 to -105 dBm": "2",
+      "Serving cell - COL100-M-L21-C2 RSRP -98 to -103 dBm": "1",
+      "Serving Cell - KYHAL1-M-L85-C1 RSRP -111 to -114 dBm": "1",
+      "Serving cell COL353W RSCP -101 to -109 dBm": "1",
+      "Serving Cell - HMMAT2-M-L85-B1\u00a0  RSRP -95dBm\u00a0 ": "1",
+      "Serving Cell-KYPIL1Q RX Level(dBm)-72-77  ": "1",
+      "Serving Cell-COL485H RSRP(dBm)-75-77  ": "1",
+      "Serving Cell - NUDAY1-M-L85-B1 RSRP -120 dBm": "1",
+      "Serving Cell-ZBAT22A Rx Level(dBm)-66-70  ": "1",
+      "Serving Cell- KUWEL1A RxLev -104 dBm  KUWEL1-M-L85-C1  RSRP -119 to -121 dBm ": "1",
+      "Serving cell IBSSM1_2-IB-L18-C1 RSRP -79 to -83 dBm": "1",
+      "Serving Cell-   IBPKL1H     RSRP(dBm)-79-83  ": "1",
+      "Serving cell - ZNUG11H RSRP -98 to -104 dBm": "1",
+      "Serving cell - KUBAD1-M-L85-C1 RSRP -117 to -125 dBm  Serving cell - KUKUR3-M-L85-A1 RSRP -119 to -124 dBm": "1",
+      "Serving cell - COL313I RSRP -117 to -119 dBm": "1",
+      "Serving Cell - KYDEL2-M-L21-B1 RSRP -96 to -99 dBm": "1",
+      "COL505G  RSRP -95dBm ": "1",
+      "Serving Cell - KGUND1-M-L85-B1 RSRP -100 to -105 dBm": "1",
+      "Serving Cell - COL374G RSRP -95 to -104 dBm": "1",
+      "Serving Cell - MT_Matale_SLT_MLMAT3_d3 RSRP -100 to -103 dBm  Serving Cell - MLMAT3G RSRP -103 to -105 dBm": "1",
+      "Serving cell - MOKON1I RSRP -83 to -89 dBm": "1",
+      "Serving cell - IBCOL1G RSRP -74 to -77 dBm": "1",
+      "Serving cell - PTNAR4-M-L18-B2 RSRP -69 to -72 dBm": "1",
+      "Serving Cell -  LGM034-M-L21-B2 RSRP -85 to -89dBm": "1",
+      "ZWAT01Y\u00a0 RSCP -91dBm": "1",
+      "Serving Cell - IBEX01H RSRP -90 to -100 dBm": "1",
+      "Serving cell - IBCOL1I RSRP -122 to -128 dBm": "1",
+      "Serving Cell- MOTKU1H   RSRP -92 to -97dBm": "1",
+      "Serving Cell - NUAGA1-M-L85-A1 RSRP -109 to 113 dBm": "1",
+      "Serving Cell - COL313I RSRP -114 to 120 dBm": "1",
+      "No coverage observed from Trace": "1"
+    },
+    "poor_signal_percentage": 0.0
+  },
+  "resolution_strategies": {
+    "voice_issues": {
+      "primary_solutions": {
+        "There were cell unavailabilities in the site, Clear the alarms solved the issue": "3",
+        "New Site (Dialog Sharing)": "2",
+        "Enabling VoLTE ": "1"
+      },
+      "resolution_rate": 39.130434782608695
+    },
+    "coverage_issues": {
+      "primary_solutions": {
+        "Need repeater solution, survey arranged": "2",
+        "KLPET1 Site on aired and solved": "1",
+        "Changing the router location solved the issue": "1"
+      },
+      "resolution_rate": 19.565217391304348
+    },
+    "data_issues": {
+      "primary_solutions": {
+        "For more analysis vist arranged": "2",
+        "Dongle device issue": "2",
+        "The mobile network mode was set to 2G/3G mode after enabling LTE mode in mobile device solved the issue": "1"
+      },
+      "resolution_rate": 26.08695652173913
+    },
+    "other_issues": {
+      "primary_solutions": {
+        "Visited and found as a POS machine issue": "1",
+        "The nearest site isn't covering the area checked using viewshed, so power increase in the site to max values.": "1",
+        "Need coverage improvement plan (visited and checked)": "1"
+      },
+      "resolution_rate": 15.217391304347828
+    }
+  }
+}
