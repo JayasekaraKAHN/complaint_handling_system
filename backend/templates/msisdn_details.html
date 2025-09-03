@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSISDN Details - Complaint Handling System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        .search-form {
+            background-color: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 30px;
+        }
+        .search-form label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        .search-form input {
+            width: 300px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .search-form button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-left: 10px;
+        }
+        .search-form button:hover {
+            background-color: #0056b3;
+        }
+        .results-section {
+            margin-top: 30px;
+        }
+        .results-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .results-table th, .results-table td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
+        .results-table th {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+        .results-table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+        .no-data {
+            text-align: center;
+            color: #666;
+            font-style: italic;
+            padding: 40px;
+        }
+        .navigation {
+            margin-bottom: 20px;
+        }
+        .navigation a {
+            color: #007bff;
+            text-decoration: none;
+            margin-right: 20px;
+            font-weight: bold;
+        }
+        .navigation a:hover {
+            text-decoration: underline;
+        }
+        .data-info {
+            background-color: #e7f3ff;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="navigation">
+            <a href="/">← Back to Home</a>
+            <a href="/msisdn_details">MSISDN Details</a>
+        </div>
+        
+        <h1>MSISDN Details Lookup</h1>
+        
+        <div class="search-form">
+            <form method="get" action="/msisdn_details">
+                <label for="msisdn">Enter MSISDN:</label>
+                <input type="text" id="msisdn" name="msisdn" 
+                       placeholder="e.g., 94771234567" 
+                       value="{{ msisdn or '' }}" required>
+                <button type="submit">Search Details</button>
+            </form>
+        </div>
+
+        {% if msisdn %}
+            <div class="results-section">
+                {% if msisdn_data %}
+                    <div class="data-info">
+                        <strong>Search Results for MSISDN: {{ msisdn }}</strong><br>
+                        Found {{ msisdn_data|length }} record(s) in VLRD database.
+                    </div>
+                    
+                    <table class="results-table">
+                        <thead>
+                            <tr>
+                                {% for column in msisdn_data[0].keys() %}
+                                    <th>{{ column }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in msisdn_data %}
+                                <tr>
+                                    {% for value in row.values() %}
+                                        <td>{{ value if value else 'N/A' }}</td>
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="no-data">
+                        <h3>No Data Found</h3>
+                        <p>No records found for MSISDN: <strong>{{ msisdn }}</strong></p>
+                        <p>Please verify the MSISDN and try again.</p>
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>

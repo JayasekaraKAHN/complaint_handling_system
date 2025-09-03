@@ -149,7 +149,7 @@ class FactsExtractor:
                 'total_complaints': len(df[df['Device_type_settings_VPN_APN'].str.contains('Mobile', na=False)]),
                 'common_issues': ['Voice call issues', 'Data connectivity', 'Signal strength'],
                 'typical_solutions': ['Alarm clearance', 'VoLTE enabling', 'Site optimization'],
-                'brands_affected': list(df[df['Device_type_settings_VPN_APN'].str.contains('Mobile', na=False)]['brand'].value_counts().head(5).index)
+                'brands_affected': list(df[df['Device_type_settings_VPN_APN'].str.contains('Mobile', na=False)]['brand'].value_counts().head(5).index) if 'brand' in df.columns else ['Unknown']
             },
             'huawei_router': {
                 'total_complaints': len(df[df['Device_type_settings_VPN_APN'].str.contains('Huawei Router', na=False)]),

@@ -1,11 +1,11 @@
 {
   "categories": [
-    "site_infrastructure",
-    "general_technical",
-    "device_hardware",
     "indoor_coverage",
+    "general_technical",
+    "voice_call",
+    "device_hardware",
     "data_coverage",
-    "voice_call"
+    "site_infrastructure"
   ],
   "solution_mappings": {
     "sudden voice call issue for all devices mobile devices abnormal kpis for klpor5 serving cell - klpor5g rsrp -87 to -94 dbm": "There were cell unavailabilities in the site, Clear the alarms solved the issue",
@@ -52,12 +52,12 @@
     "mobile device": "There were cell unavailabilities in the site, Clear the alarms solved the issue",
     "huawei router": "KLPET1 Site on aired and solved",
     "dongle": "Dongle device issue",
-    "s10 router": "Data bundle was over and renewed on 25th Aug. Then gave a reset after that issue solved"
+    "s10 router": "Changing the router location solved the issue"
   },
   "site_patterns": {
     "klpor5": "There were cell unavailabilities in the site, Clear the alarms solved the issue",
     "klpet1": "KLPET1 Site on aired and solved"
   },
-  "training_date": "2025-09-02T13:13:38.871569",
+  "training_date": "2025-09-03T09:46:00.468386",
   "training_samples": 39
 }

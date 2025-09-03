@@ -1,0 +1,21 @@
+{
+  "categories": [
+    "data_speed_rural",
+    "data_speed_urban",
+    "outdoor_coverage",
+    "site_down",
+    "site_infrastructure",
+    "site_kpi_issue",
+    "voice_call"
+  ],
+  "training_date": "2025-09-03T11:02:30.160239",
+  "training_samples": 39,
+  "model_version": "2.0_enhanced",
+  "features": [
+    "location_aware_categorization",
+    "site_pattern_matching",
+    "device_specific_patterns",
+    "kpi_based_analysis",
+    "coordinate_parsing"
+  ]
+}
