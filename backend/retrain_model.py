@@ -192,7 +192,7 @@ class ComplaintModelRetrainer:
             except ValueError:
                 # Fall back to random split if stratification fails
                 X_train, X_test, y_train, y_test = train_test_split(
-                    valid_samples, valid_labels, test_size=0.2, random_state=42
+                    valid_samples, valid_labels, test_size=0.25, random_state=42
                 )
         
         # Create pipeline with TF-IDF and Naive Bayes

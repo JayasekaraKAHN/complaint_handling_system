@@ -79,32 +79,99 @@
             from { opacity: 0; }
             to { opacity: 1; }
         }
+        .navigation {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .navigation a {
+            color: #0078d7;
+            text-decoration: none;
+            margin: 0 15px;
+            font-weight: 500;
+            padding: 8px 16px;
+            border-radius: 6px;
+            transition: background-color 0.2s;
+        }
+        .navigation a:hover {
+            background-color: #e9ecef;
+        }
+        .msisdn-search {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            border-top: 2px solid #0078d7;
+        }
+        .msisdn-search h3 {
+            margin-top: 0;
+            color: #0078d7;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <div class="navigation">
+            <a href="/">🏠 Home</a>
+            <a href="/msisdn_details">📱 MSISDN Details</a>
+        </div>
+        
         <h2>Customer Complaint Solution</h2>
-        <form id="complaintForm">
+        <form id="complaintForm" method="post" action="/get_solution">
             <label for="msisdn">MSISDN:</label>
             <input type="text" id="msisdn" name="msisdn" required placeholder="Enter MSISDN">
 
-            <label for="complaint">Complaint:</label>
-            <textarea id="complaint" name="complaint" rows="3" required placeholder="Describe your complaint"></textarea>
+            <label for="complaint">Issue Description:</label>
+            <textarea id="complaint" name="complaint" rows="3" required placeholder="Describe the issue or complaint"></textarea>
 
-            <label for="location">Location:</label>
-            <input type="text" id="location" name="location" placeholder="Enter location info">
+            <label for="device_type_settings_vpn_apn">Device Type / Settings / VPN / APN:</label>
+            <input type="text" id="device_type_settings_vpn_apn" name="device_type_settings_vpn_apn" 
+                   placeholder="e.g., Mobile Device, Huawei Router, VPN settings, APN configuration">
 
-            <label for="site_alarm">Site Down / Alarm Info:</label>
-            <input type="text" id="site_alarm" name="site_alarm" placeholder="Enter site alarm info">
+            <label for="signal_strength">Signal Strength:</label>
+            <input type="text" id="signal_strength" name="signal_strength" 
+                   placeholder="e.g., Weak signal, No signal, Good signal">
 
-            <label for="kpi">Poor KPI / Speeds:</label>
-            <input type="text" id="kpi" name="kpi" placeholder="Enter KPI or speed issues">
+            <label for="quality_of_signal">Quality of Signal:</label>
+            <input type="text" id="quality_of_signal" name="quality_of_signal" 
+                   placeholder="e.g., Poor quality, Intermittent, Clear">
 
-            <label for="billing">Billing Information:</label>
-            <input type="text" id="billing" name="billing" placeholder="Enter billing info">
+            <label for="site_kpi_alarm">Site KPI / Alarm:</label>
+            <input type="text" id="site_kpi_alarm" name="site_kpi_alarm" 
+                   placeholder="e.g., Site unavailability, KPI abnormal, KLPOR5, KLPET1">
+
+            <label for="past_data_analysis">Past Data Analysis:</label>
+            <input type="text" id="past_data_analysis" name="past_data_analysis" 
+                   placeholder="Previous issue history or analysis">
+
+            <label for="indoor_outdoor_coverage_issue">Indoor / Outdoor Coverage Issue:</label>
+            <select id="indoor_outdoor_coverage_issue" name="indoor_outdoor_coverage_issue">
+                <option value="">Select coverage type</option>
+                <option value="Indoor">Indoor Coverage Issue</option>
+                <option value="Outdoor">Outdoor Coverage Issue</option>
+                <option value="Both">Both Indoor and Outdoor</option>
+                <option value="None">No Coverage Issue</option>
+            </select>
+
+            <label for="location">Location (Coordinates or Name):</label>
+            <input type="text" id="location" name="location" 
+                   placeholder="e.g., 6.721,80.123 or Colombo or 6.721305732	80.12328967">
 
             <button type="submit">Get Solution</button>
         </form>
+        
+        <div class="msisdn-search">
+            <h3>Quick MSISDN Lookup</h3>
+            <form id="msisdnForm" method="get" action="/msisdn_details">
+                <label for="search_msisdn">Search MSISDN:</label>
+                <input type="text" id="search_msisdn" name="msisdn" required placeholder="Enter MSISDN to view details">
+                <button type="submit">Search Details</button>
+            </form>
+        </div>
+        
         <div id="solution" class="solution" style="display:none;"></div>
     </div>
 
@@ -114,10 +181,13 @@
 
             const msisdn = document.getElementById('msisdn').value;
             const complaint = document.getElementById('complaint').value;
+            const device_type_settings_vpn_apn = document.getElementById('device_type_settings_vpn_apn').value;
+            const signal_strength = document.getElementById('signal_strength').value;
+            const quality_of_signal = document.getElementById('quality_of_signal').value;
+            const site_kpi_alarm = document.getElementById('site_kpi_alarm').value;
+            const past_data_analysis = document.getElementById('past_data_analysis').value;
+            const indoor_outdoor_coverage_issue = document.getElementById('indoor_outdoor_coverage_issue').value;
             const location = document.getElementById('location').value;
-            const site_alarm = document.getElementById('site_alarm').value;
-            const kpi = document.getElementById('kpi').value;
-            const billing = document.getElementById('billing').value;
 
             const solutionDiv = document.getElementById('solution');
             solutionDiv.style.display = 'none';
@@ -128,7 +198,15 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        msisdn, complaint, location, site_alarm, kpi, billing
+                        msisdn, 
+                        complaint, 
+                        device_type_settings_vpn_apn,
+                        signal_strength,
+                        quality_of_signal,
+                        site_kpi_alarm,
+                        past_data_analysis,
+                        indoor_outdoor_coverage_issue,
+                        location
                     })
                 });
 

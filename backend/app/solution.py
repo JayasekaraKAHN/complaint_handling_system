@@ -14,12 +14,21 @@ import pickle
 try:
     with open('models/complaint_classifier.pkl', 'rb') as f:
         ENHANCED_CLASSIFIER = pickle.load(f)
-    with open('models/text_vectorizer.pkl', 'rb') as f:
-        ENHANCED_VECTORIZER = pickle.load(f)
     with open('models/solution_patterns.pkl', 'rb') as f:
         ENHANCED_SOLUTION_PATTERNS = pickle.load(f)
-    with open('models/company_knowledge.pkl', 'rb') as f:
-        COMPANY_KNOWLEDGE = pickle.load(f)
+    # Try to load additional models if they exist
+    try:
+        with open('models/text_vectorizer.pkl', 'rb') as f:
+            ENHANCED_VECTORIZER = pickle.load(f)
+    except FileNotFoundError:
+        ENHANCED_VECTORIZER = None
+    
+    try:
+        with open('models/company_knowledge.pkl', 'rb') as f:
+            COMPANY_KNOWLEDGE = pickle.load(f)
+    except FileNotFoundError:
+        COMPANY_KNOWLEDGE = None
+    
     ENHANCED_MODEL_AVAILABLE = True
     print("✅ Enhanced complaint analysis models loaded successfully")
 except FileNotFoundError:
@@ -35,17 +44,16 @@ def use_enhanced_model_analysis(complaint_text: str, device_info: str = "",
                               site_alarm: str = "") -> dict | None:
     """Use enhanced AI model for complaint analysis if available"""
     
-    if not ENHANCED_MODEL_AVAILABLE or ENHANCED_VECTORIZER is None or ENHANCED_CLASSIFIER is None:
+    if not ENHANCED_MODEL_AVAILABLE or ENHANCED_CLASSIFIER is None:
         return None
     
     try:
         # Prepare input for enhanced classification
-        combined_text = f"{complaint_text} {device_info} {signal_strength} {site_alarm}"
-        text_vector = ENHANCED_VECTORIZER.transform([combined_text])
+        combined_text = f"{complaint_text} {device_info} {signal_strength} {site_alarm}".strip()
         
-        # Classify complaint with enhanced model
-        predicted_category = ENHANCED_CLASSIFIER.predict(text_vector)[0]
-        confidence_scores = ENHANCED_CLASSIFIER.predict_proba(text_vector)[0]
+        # The new model is a pipeline that includes TF-IDF vectorization
+        predicted_category = ENHANCED_CLASSIFIER.predict([combined_text])[0]
+        confidence_scores = ENHANCED_CLASSIFIER.predict_proba([combined_text])[0]
         category_confidence = max(confidence_scores)
         
         # Find matching solution pattern
