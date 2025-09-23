@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime
@@ -11,12 +12,13 @@ import os
 backend_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, backend_dir)
 
-from app.prompts import SOLUTION_PROMPT
-from app.enhanced_solution import generate_solution  # Use enhanced solution generator
-from app.vlrd_handler import get_vlrd_handler
+from app.simple_solution import generate_solution  # Use simplified solution generator
 
 # ----------------- FastAPI App -----------------
-app = FastAPI(title="Complaint Solution API")
+app = FastAPI(title="Simplified Complaint Solution API")
+
+# Mount static files
+app.mount("/static", StaticFiles(directory=os.path.join(backend_dir, "static")), name="static")
 
 # Allow CORS for dev (adjust in production)
 app.add_middleware(
@@ -39,6 +41,8 @@ class ComplaintRequest(BaseModel):
     past_data_analysis: str | None = None
     indoor_outdoor_coverage_issue: str | None = None
     location: str | None = None
+    longitude: float | None = None
+    latitude: float | None = None
 
 # ----------------- Routes -----------------
 @app.get("/", response_class=HTMLResponse)
@@ -48,11 +52,10 @@ async def root(request: Request):
 @app.post("/api/solution")
 async def get_solution(req: ComplaintRequest):
     """
-    Receives complaint input from frontend, generates personalized prompt,
-    and returns solution.
+    Receives complaint input from frontend, generates personalized solution.
     """
     try:
-        # Call your updated generate_solution function with all input fields
+        # Call simplified solution generation
         solution_text = generate_solution(
             msisdn=req.msisdn,
             complaint_text=req.complaint,
@@ -63,6 +66,8 @@ async def get_solution(req: ComplaintRequest):
             past_data_analysis=req.past_data_analysis,
             indoor_outdoor_coverage_issue=req.indoor_outdoor_coverage_issue,
             location=req.location,
+            longitude=req.longitude,
+            latitude=req.latitude,
         )
 
         return JSONResponse({"solution": solution_text, "status": "success"})
@@ -76,57 +81,7 @@ async def get_solution(req: ComplaintRequest):
             status_code=500
         )
 
-@app.get("/msisdn_details", response_class=HTMLResponse)
-async def msisdn_details_page(request: Request, msisdn: str | None = None):
-    """
-    Display MSISDN details page with search functionality
-    """
-    try:
-        msisdn_data = []
-        if msisdn:
-            vlrd_handler = get_vlrd_handler()
-            msisdn_data = vlrd_handler.search_msisdn(msisdn)
-        
-        return templates.TemplateResponse(
-            "msisdn_details.html", 
-            {
-                "request": request, 
-                "msisdn": msisdn, 
-                "msisdn_data": msisdn_data
-            }
-        )
-    except Exception as e:
-        return templates.TemplateResponse(
-            "msisdn_details.html", 
-            {
-                "request": request, 
-                "msisdn": msisdn, 
-                "msisdn_data": [],
-                "error": str(e)
-            }
-        )
-
-@app.get("/api/msisdn/{msisdn}")
-async def get_msisdn_data(msisdn: str):
-    """
-    API endpoint to get MSISDN data in JSON format
-    """
-    try:
-        vlrd_handler = get_vlrd_handler()
-        msisdn_data = vlrd_handler.search_msisdn(msisdn)
-        
-        return JSONResponse({
-            "msisdn": msisdn,
-            "data": msisdn_data,
-            "found": len(msisdn_data) > 0,
-            "count": len(msisdn_data),
-            "status": "success"
-        })
-    except Exception as e:
-        return JSONResponse(
-            {"error": str(e), "status": "error"}, 
-            status_code=500
-        )
+# Removed MSISDN details endpoints to simplify the system
 
 
 # ----------------- Run Server -----------------

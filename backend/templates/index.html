@@ -4,222 +4,209 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Customer Complaint Solution</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Arial, sans-serif;
-            background: linear-gradient(135deg, #e0eafc 0%, #cfdef3 100%);
-            margin: 0;
-            padding: 0;
-        }
-        .container {
-            max-width: 480px;
-            margin: 60px auto;
-            background: #fff;
-            padding: 36px 28px;
-            border-radius: 16px;
-            box-shadow: 0 6px 30px rgba(0,0,0,0.1);
-        }
-        h2 {
-            text-align: center;
-            color: #0078d7;
-            margin-bottom: 24px;
-            font-weight: 600;
-        }
-        label {
-            display: block;
-            margin-top: 18px;
-            color: #333;
-            font-size: 1.05em;
-        }
-        input, textarea {
-            width: 100%;
-            padding: 10px 12px;
-            margin-top: 7px;
-            border: 1px solid #bcdffb;
-            border-radius: 8px;
-            font-size: 1em;
-            background: #f7fbff;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-        input:focus, textarea:focus {
-            border-color: #0078d7;
-            outline: none;
-            box-shadow: 0 0 5px rgba(0,120,215,0.3);
-        }
-        button {
-            margin-top: 24px;
-            width: 100%;
-            padding: 14px;
-            background: linear-gradient(90deg, #0078d7 60%, #00c6fb 100%);
-            color: #fff;
-            border: none;
-            border-radius: 8px;
-            font-size: 1.1em;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
-        }
-        button:hover {
-            background: linear-gradient(90deg, #005fa3 60%, #00a6d7 100%);
-            transform: translateY(-1px);
-        }
-        .solution {
-            margin-top: 28px;
-            padding: 20px 18px;
-            background: #f0f8ff;
-            border-radius: 10px;
-            color: #222;
-            font-size: 1.05em;
-            box-shadow: 0 2px 12px rgba(0,120,215,0.07);
-            border-left: 4px solid #0078d7;
-            animation: fadeIn 0.5s;
-            white-space: pre-wrap;
-        }
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        .navigation {
-            text-align: center;
-            margin-bottom: 30px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-        .navigation a {
-            color: #0078d7;
-            text-decoration: none;
-            margin: 0 15px;
-            font-weight: 500;
-            padding: 8px 16px;
-            border-radius: 6px;
-            transition: background-color 0.2s;
-        }
-        .navigation a:hover {
-            background-color: #e9ecef;
-        }
-        .msisdn-search {
-            margin-top: 30px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
-            border-top: 2px solid #0078d7;
-        }
-        .msisdn-search h3 {
-            margin-top: 0;
-            color: #0078d7;
-            text-align: center;
-        }
-    </style>
+    <link rel="stylesheet" href="/static/css/style.css">
 </head>
 <body>
     <div class="container">
-        <div class="navigation">
-            <a href="/">🏠 Home</a>
-            <a href="/msisdn_details">📱 MSISDN Details</a>
-        </div>
+        <h2>🔧 Complaint Solution System</h2>
+        <p class="subtitle">AI-powered complaint resolution using pattern analysis and Ollama LLM</p>
         
-        <h2>Customer Complaint Solution</h2>
         <form id="complaintForm" method="post" action="/get_solution">
-            <label for="msisdn">MSISDN:</label>
-            <input type="text" id="msisdn" name="msisdn" required placeholder="Enter MSISDN">
+            <!-- Required Fields -->
+            <div class="form-group">
+                <label for="msisdn">MSISDN <span class="required">*</span></label>
+                <input type="text" id="msisdn" name="msisdn" required placeholder="Enter customer mobile number">
+                <div class="field-description">Customer's mobile number</div>
+            </div>
 
-            <label for="complaint">Issue Description:</label>
-            <textarea id="complaint" name="complaint" rows="3" required placeholder="Describe the issue or complaint"></textarea>
+            <div class="form-group">
+                <label for="complaint">Issue Description <span class="required">*</span></label>
+                <textarea id="complaint" name="complaint" required placeholder="Describe the issue or complaint in detail"></textarea>
+                <div class="field-description">Brief description of the problem</div>
+            </div>
 
-            <label for="device_type_settings_vpn_apn">Device Type / Settings / VPN / APN:</label>
-            <input type="text" id="device_type_settings_vpn_apn" name="device_type_settings_vpn_apn" 
-                   placeholder="e.g., Mobile Device, Huawei Router, VPN settings, APN configuration">
+            <!-- Technical Details Section -->
+            <div class="section-header">📋 Technical Details</div>
+            
+            <div class="form-group">
+                <label for="device_type_settings_vpn_apn">Device / Settings / VPN / APN</label>
+                <input type="text" id="device_type_settings_vpn_apn" name="device_type_settings_vpn_apn" 
+                       placeholder="e.g., Android Phone, iPhone, Router, VPN settings">
+                <div class="field-description">Device model, configuration, or network settings</div>
+            </div>
 
-            <label for="signal_strength">Signal Strength:</label>
-            <input type="text" id="signal_strength" name="signal_strength" 
-                   placeholder="e.g., Weak signal, No signal, Good signal">
+            <div class="form-group">
+                <label for="signal_strength">Signal Strength</label>
+                <select id="signal_strength" name="signal_strength">
+                    <option value="">Select signal strength</option>
+                    <option value="Excellent">Excellent (4-5 bars)</option>
+                    <option value="Good">Good (3-4 bars)</option>
+                    <option value="Fair">Fair (2-3 bars)</option>
+                    <option value="Weak">Weak (1-2 bars)</option>
+                    <option value="No Signal">No Signal (0 bars)</option>
+                </select>
+                <div class="field-description">Current signal strength observed</div>
+            </div>
 
-            <label for="quality_of_signal">Quality of Signal:</label>
-            <input type="text" id="quality_of_signal" name="quality_of_signal" 
-                   placeholder="e.g., Poor quality, Intermittent, Clear">
+            <div class="form-group">
+                <label for="quality_of_signal">Quality of Signal</label>
+                <select id="quality_of_signal" name="quality_of_signal">
+                    <option value="">Select signal quality</option>
+                    <option value="Clear">Clear - No issues</option>
+                    <option value="Good">Good - Minor issues</option>
+                    <option value="Fair">Fair - Some problems</option>
+                    <option value="Poor">Poor - Frequent issues</option>
+                    <option value="Intermittent">Intermittent - On/off problems</option>
+                </select>
+                <div class="field-description">Voice/data quality experienced</div>
+            </div>
 
-            <label for="site_kpi_alarm">Site KPI / Alarm:</label>
-            <input type="text" id="site_kpi_alarm" name="site_kpi_alarm" 
-                   placeholder="e.g., Site unavailability, KPI abnormal, KLPOR5, KLPET1">
+            <div class="form-group">
+                <label for="site_kpi_alarm">Site KPI / Alarm</label>
+                <input type="text" id="site_kpi_alarm" name="site_kpi_alarm" 
+                       placeholder="e.g., Site unavailability, KLPOR5, KLPET1, Cell outage">
+                <div class="field-description">Any network alarms or site issues reported</div>
+            </div>
 
-            <label for="past_data_analysis">Past Data Analysis:</label>
-            <input type="text" id="past_data_analysis" name="past_data_analysis" 
-                   placeholder="Previous issue history or analysis">
+            <div class="form-group">
+                <label for="past_data_analysis">Past Data Analysis</label>
+                <textarea id="past_data_analysis" name="past_data_analysis" rows="2"
+                          placeholder="Previous similar issues, patterns, or analysis"></textarea>
+                <div class="field-description">Historical context or previous troubleshooting</div>
+            </div>
 
-            <label for="indoor_outdoor_coverage_issue">Indoor / Outdoor Coverage Issue:</label>
-            <select id="indoor_outdoor_coverage_issue" name="indoor_outdoor_coverage_issue">
-                <option value="">Select coverage type</option>
-                <option value="Indoor">Indoor Coverage Issue</option>
-                <option value="Outdoor">Outdoor Coverage Issue</option>
-                <option value="Both">Both Indoor and Outdoor</option>
-                <option value="None">No Coverage Issue</option>
-            </select>
+            <div class="form-group">
+                <label for="indoor_outdoor_coverage_issue">Coverage Issue Type</label>
+                <select id="indoor_outdoor_coverage_issue" name="indoor_outdoor_coverage_issue">
+                    <option value="">Select coverage type</option>
+                    <option value="Indoor">Indoor Coverage Issue</option>
+                    <option value="Outdoor">Outdoor Coverage Issue</option>
+                    <option value="Both">Both Indoor and Outdoor</option>
+                    <option value="None">No Coverage Issue</option>
+                </select>
+                <div class="field-description">Where the issue occurs</div>
+            </div>
 
-            <label for="location">Location (Coordinates or Name):</label>
-            <input type="text" id="location" name="location" 
-                   placeholder="e.g., 6.721,80.123 or Colombo or 6.721305732	80.12328967">
+            <!-- Location Information Section -->
+            <div class="section-header">📍 Location Information</div>
+            
+            <div class="form-group">
+                <label for="location">Location (Area/City)</label>
+                <input type="text" id="location" name="location" 
+                       placeholder="e.g., Karachi, Lahore, Colombo, Downtown Area">
+                <div class="field-description">General area or city name</div>
+            </div>
 
-            <button type="submit">Get Solution</button>
+            <div class="form-group">
+                <label for="longitude">Longitude</label>
+                <input type="number" id="longitude" name="longitude" step="any"
+                       placeholder="e.g., 67.0104">
+                <div class="field-description">Precise longitude coordinate (if available)</div>
+            </div>
+
+            <div class="form-group">
+                <label for="latitude">Latitude</label>
+                <input type="number" id="latitude" name="latitude" step="any"
+                       placeholder="e.g., 24.8614">
+                <div class="field-description">Precise latitude coordinate (if available)</div>
+            </div>
+
+            <button type="submit" id="submitBtn" class="submit-btn">🔍 Get Solution</button>
         </form>
         
-        <div class="msisdn-search">
-            <h3>Quick MSISDN Lookup</h3>
-            <form id="msisdnForm" method="get" action="/msisdn_details">
-                <label for="search_msisdn">Search MSISDN:</label>
-                <input type="text" id="search_msisdn" name="msisdn" required placeholder="Enter MSISDN to view details">
-                <button type="submit">Search Details</button>
-            </form>
-        </div>
+        <div id="solution" class="solution"></div>
         
-        <div id="solution" class="solution" style="display:none;"></div>
+        <div id="solution" class="solution"></div>
+        
+        <div class="info-box">
+            <h4>🤖 Smart Complaint Resolution Logic</h4>
+            
+            <ul>
+                <li><strong>Exact Match:</strong> Same complaint + same conditions → Returns exact solution from dataset (max 5 sentences)</li>
+                <li><strong>Pattern Analysis:</strong> Similar complaint + different conditions → Analyzes historical patterns</li>
+                <li><strong>New Complaint:</strong> Completely new issue → Uses Ollama Llama 3.2 1B LLM with full context</li>
+            </ul>
+            
+            <div class="pro-tips">
+                <strong>💡 Tips:</strong><br>
+                • Required fields: MSISDN and Issue Description<br>
+                • Fill only relevant optional fields for better matching<br>
+                • System analyzes only provided information<br>
+                • More details = better solution accuracy
+            </div>
+        </div>
     </div>
 
     <script>
+        // Form submission with enhanced UX
         document.getElementById('complaintForm').addEventListener('submit', async function(e) {
             e.preventDefault();
 
-            const msisdn = document.getElementById('msisdn').value;
-            const complaint = document.getElementById('complaint').value;
-            const device_type_settings_vpn_apn = document.getElementById('device_type_settings_vpn_apn').value;
-            const signal_strength = document.getElementById('signal_strength').value;
-            const quality_of_signal = document.getElementById('quality_of_signal').value;
-            const site_kpi_alarm = document.getElementById('site_kpi_alarm').value;
-            const past_data_analysis = document.getElementById('past_data_analysis').value;
-            const indoor_outdoor_coverage_issue = document.getElementById('indoor_outdoor_coverage_issue').value;
-            const location = document.getElementById('location').value;
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.innerHTML = '🔄 Analyzing...';
+            submitBtn.disabled = true;
+
+            // Get form values
+            const formData = {
+                msisdn: document.getElementById('msisdn').value,
+                complaint: document.getElementById('complaint').value,
+                device_type_settings_vpn_apn: document.getElementById('device_type_settings_vpn_apn').value || null,
+                signal_strength: document.getElementById('signal_strength').value || null,
+                quality_of_signal: document.getElementById('quality_of_signal').value || null,
+                site_kpi_alarm: document.getElementById('site_kpi_alarm').value || null,
+                past_data_analysis: document.getElementById('past_data_analysis').value || null,
+                indoor_outdoor_coverage_issue: document.getElementById('indoor_outdoor_coverage_issue').value || null,
+                location: document.getElementById('location').value || null,
+                longitude: document.getElementById('longitude').value ? parseFloat(document.getElementById('longitude').value) : null,
+                latitude: document.getElementById('latitude').value ? parseFloat(document.getElementById('latitude').value) : null
+            };
 
             const solutionDiv = document.getElementById('solution');
-            solutionDiv.style.display = 'none';
+            solutionDiv.className = 'solution';
             solutionDiv.innerHTML = '';
 
             try {
+                // Show loading state
+                solutionDiv.innerHTML = '<div class="loading">🤖 Analyzing complaint and generating solution...</div>';
+                solutionDiv.className = 'solution show';
+
                 const response = await fetch('/api/solution', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        msisdn, 
-                        complaint, 
-                        device_type_settings_vpn_apn,
-                        signal_strength,
-                        quality_of_signal,
-                        site_kpi_alarm,
-                        past_data_analysis,
-                        indoor_outdoor_coverage_issue,
-                        location
-                    })
+                    body: JSON.stringify(formData)
                 });
 
                 const data = await response.json();
+                
                 if (data.solution) {
-                    solutionDiv.innerHTML = `<strong>Solution:</strong>\n${data.solution}`;
+                    // Count filled optional fields
+                    const optionalFields = [
+                        formData.device_type_settings_vpn_apn, formData.signal_strength, formData.quality_of_signal,
+                        formData.site_kpi_alarm, formData.past_data_analysis, formData.indoor_outdoor_coverage_issue,
+                        formData.location, formData.longitude, formData.latitude
+                    ].filter(field => field !== null && field !== '').length;
+                    
+                    const fieldInfo = optionalFields > 0 ? 
+                        `<div class="text-small text-muted mb-2">📊 Analyzed with ${optionalFields} additional field${optionalFields !== 1 ? 's' : ''}</div>` : 
+                        `<div class="text-small text-muted mb-2">📊 Basic analysis (required fields only)</div>`;
+                    
+                    solutionDiv.innerHTML = fieldInfo + `<strong>🔧 Solution:</strong><br><br>${data.solution}`;
+                } else if (data.error) {
+                    solutionDiv.innerHTML = `<strong>❌ Error:</strong> ${data.error}`;
                 } else {
-                    solutionDiv.innerHTML = `<strong>No solution found.</strong>`;
+                    solutionDiv.innerHTML = `<strong>⚠️ No solution found.</strong>`;
                 }
-                solutionDiv.style.display = 'block';
+                
+                solutionDiv.className = 'solution show';
+                
             } catch (err) {
-                solutionDiv.innerHTML = '<strong>Error fetching solution.</strong>';
-                solutionDiv.style.display = 'block';
+                solutionDiv.innerHTML = '<strong>❌ Network Error:</strong> Unable to connect to the server. Please check if the system is running.';
+                solutionDiv.className = 'solution show';
+            } finally {
+                // Reset button
+                submitBtn.innerHTML = originalText;
+                submitBtn.disabled = false;
             }
         });
     </script>
