@@ -1,16 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Customer Complaint Solution</title>
     <link rel="stylesheet" href="/static/css/style.css">
 </head>
+
 <body>
     <div class="container">
         <h2>🔧 Complaint Solution System</h2>
         <p class="subtitle">AI-powered complaint resolution using pattern analysis and Ollama LLM</p>
-        
+
         <form id="complaintForm" method="post" action="/get_solution">
             <!-- Required Fields -->
             <div class="form-group">
@@ -21,17 +23,18 @@
 
             <div class="form-group">
                 <label for="complaint">Issue Description <span class="required">*</span></label>
-                <textarea id="complaint" name="complaint" required placeholder="Describe the issue or complaint in detail"></textarea>
+                <textarea id="complaint" name="complaint" required
+                    placeholder="Describe the issue or complaint in detail"></textarea>
                 <div class="field-description">Brief description of the problem</div>
             </div>
 
             <!-- Technical Details Section -->
             <div class="section-header">📋 Technical Details</div>
-            
+
             <div class="form-group">
                 <label for="device_type_settings_vpn_apn">Device / Settings / VPN / APN</label>
-                <input type="text" id="device_type_settings_vpn_apn" name="device_type_settings_vpn_apn" 
-                       placeholder="e.g., Android Phone, iPhone, Router, VPN settings">
+                <input type="text" id="device_type_settings_vpn_apn" name="device_type_settings_vpn_apn"
+                    placeholder="e.g., Android Phone, iPhone, Router, VPN settings">
                 <div class="field-description">Device model, configuration, or network settings</div>
             </div>
 
@@ -63,15 +66,15 @@
 
             <div class="form-group">
                 <label for="site_kpi_alarm">Site KPI / Alarm</label>
-                <input type="text" id="site_kpi_alarm" name="site_kpi_alarm" 
-                       placeholder="e.g., Site unavailability, KLPOR5, KLPET1, Cell outage">
+                <input type="text" id="site_kpi_alarm" name="site_kpi_alarm"
+                    placeholder="e.g., Site unavailability, KLPOR5, KLPET1, Cell outage">
                 <div class="field-description">Any network alarms or site issues reported</div>
             </div>
 
             <div class="form-group">
                 <label for="past_data_analysis">Past Data Analysis</label>
                 <textarea id="past_data_analysis" name="past_data_analysis" rows="2"
-                          placeholder="Previous similar issues, patterns, or analysis"></textarea>
+                    placeholder="Previous similar issues, patterns, or analysis"></textarea>
                 <div class="field-description">Historical context or previous troubleshooting</div>
             </div>
 
@@ -89,44 +92,65 @@
 
             <!-- Location Information Section -->
             <div class="section-header">📍 Location Information</div>
-            
+
             <div class="form-group">
                 <label for="location">Location (Area/City)</label>
-                <input type="text" id="location" name="location" 
-                       placeholder="e.g., Karachi, Lahore, Colombo, Downtown Area">
+                <input type="text" id="location" name="location"
+                    placeholder="e.g., Karachi, Lahore, Colombo, Downtown Area">
                 <div class="field-description">General area or city name</div>
             </div>
 
             <div class="form-group">
                 <label for="longitude">Longitude</label>
-                <input type="number" id="longitude" name="longitude" step="any"
-                       placeholder="e.g., 67.0104">
+                <input type="number" id="longitude" name="longitude" step="any" placeholder="e.g., 67.0104">
                 <div class="field-description">Precise longitude coordinate (if available)</div>
             </div>
 
             <div class="form-group">
                 <label for="latitude">Latitude</label>
-                <input type="number" id="latitude" name="latitude" step="any"
-                       placeholder="e.g., 24.8614">
+                <input type="number" id="latitude" name="latitude" step="any" placeholder="e.g., 24.8614">
                 <div class="field-description">Precise latitude coordinate (if available)</div>
             </div>
 
             <button type="submit" id="submitBtn" class="submit-btn">🔍 Get Solution</button>
         </form>
-        
+
         <div id="solution" class="solution"></div>
-        
+
         <div id="solution" class="solution"></div>
-        
+
+        <!-- Location Data Table -->
+        <div>
+            <h3>Location Data</h3>
+            <table id="locationTable">
+                <thead>
+                    <tr>
+                        <th>Site Name</th>
+                        <th>RSRP Range 1 (> -105dBm)</th>
+                        <th>RSRP Range 2 (-105 to -110dBm)</th>
+                        <th>RSRP Range 3 (-110 to -115dBm)</th>
+                        <th>RSRP Below -115dBm</th>
+                        <th>Distance (km)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Data will be populated here via JavaScript -->
+                </tbody>
+            </table>
+        </div>
+
         <div class="info-box">
             <h4>🤖 Smart Complaint Resolution Logic</h4>
-            
+
             <ul>
-                <li><strong>Exact Match:</strong> Same complaint + same conditions → Returns exact solution from dataset (max 5 sentences)</li>
-                <li><strong>Pattern Analysis:</strong> Similar complaint + different conditions → Analyzes historical patterns</li>
-                <li><strong>New Complaint:</strong> Completely new issue → Uses Ollama Llama 3.2 1B LLM with full context</li>
+                <li><strong>Exact Match:</strong> Same complaint + same conditions → Returns exact solution from dataset
+                    (max 5 sentences)</li>
+                <li><strong>Pattern Analysis:</strong> Similar complaint + different conditions → Analyzes historical
+                    patterns</li>
+                <li><strong>New Complaint:</strong> Completely new issue → Uses Ollama Llama 3.2 1B LLM with full
+                    context</li>
             </ul>
-            
+
             <div class="pro-tips">
                 <strong>💡 Tips:</strong><br>
                 • Required fields: MSISDN and Issue Description<br>
@@ -139,11 +163,13 @@
 
     <script>
         // Form submission with enhanced UX
-        document.getElementById('complaintForm').addEventListener('submit', async function(e) {
+        document.getElementById('complaintForm').addEventListener('submit', async function (e) {
             e.preventDefault();
 
             const submitBtn = document.getElementById('submitBtn');
             const originalText = submitBtn.innerHTML;
+            const lat = document.getElementById('latitude').value;
+            const lon = document.getElementById('longitude').value;
             submitBtn.innerHTML = '🔄 Analyzing...';
             submitBtn.disabled = true;
 
@@ -178,7 +204,7 @@
                 });
 
                 const data = await response.json();
-                
+
                 if (data.solution) {
                     // Count filled optional fields
                     const optionalFields = [
@@ -186,20 +212,20 @@
                         formData.site_kpi_alarm, formData.past_data_analysis, formData.indoor_outdoor_coverage_issue,
                         formData.location, formData.longitude, formData.latitude
                     ].filter(field => field !== null && field !== '').length;
-                    
-                    const fieldInfo = optionalFields > 0 ? 
-                        `<div class="text-small text-muted mb-2">📊 Analyzed with ${optionalFields} additional field${optionalFields !== 1 ? 's' : ''}</div>` : 
+
+                    const fieldInfo = optionalFields > 0 ?
+                        `<div class="text-small text-muted mb-2">📊 Analyzed with ${optionalFields} additional field${optionalFields !== 1 ? 's' : ''}</div>` :
                         `<div class="text-small text-muted mb-2">📊 Basic analysis (required fields only)</div>`;
-                    
+
                     solutionDiv.innerHTML = fieldInfo + `<strong>🔧 Solution:</strong><br><br>${data.solution}`;
                 } else if (data.error) {
                     solutionDiv.innerHTML = `<strong>❌ Error:</strong> ${data.error}`;
                 } else {
                     solutionDiv.innerHTML = `<strong>⚠️ No solution found.</strong>`;
                 }
-                
+
                 solutionDiv.className = 'solution show';
-                
+
             } catch (err) {
                 solutionDiv.innerHTML = '<strong>❌ Network Error:</strong> Unable to connect to the server. Please check if the system is running.';
                 solutionDiv.className = 'solution show';
@@ -208,7 +234,61 @@
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
             }
+
+
+
+
+
+            fetch(`/location/location_data?lat=${lat}&lon=${lon}`)
+                .then(response => response.json())
+                .then(data => {
+                    const locationTableBody = document.querySelector('#locationTable tbody');
+                    locationTableBody.innerHTML = '';
+                    // Show the unique nearest site first
+                    let nearestName = null;
+                    if (data.nearest_site && data.nearest_site.site_name) {
+                        const nearest = data.nearest_site;
+                        nearestName = nearest.site_name;
+                        const row = document.createElement('tr');
+                        row.innerHTML = `
+                            <td><b>${nearest.site_name} (Nearest)</b></td>
+                            <td>${nearest.rsrp_range_1}</td>
+                            <td>${nearest.rsrp_range_2}</td>
+                            <td>${nearest.rsrp_range_3}</td>
+                            <td>${nearest.rsrp_below_115}</td>
+                            <td>${(nearest.distance_km / 1000).toFixed(2)} km</td>
+                        `;
+                        locationTableBody.appendChild(row);
+                    }
+                    // Show all other cells (sites) in nearby_sites, excluding the nearest if already shown
+                    if (data.nearby_sites && data.nearby_sites.length > 0) {
+                        data.nearby_sites.forEach(site => {
+                            if (!nearestName || site.site_name !== nearestName) {
+                                const row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td>${site.site_name}</td>
+                                    <td>${site.rsrp_range_1}</td>
+                                    <td>${site.rsrp_range_2}</td>
+                                    <td>${site.rsrp_range_3}</td>
+                                    <td>${site.rsrp_below_115}</td>
+                                    <td>${(site.distance_km / 1000).toFixed(2)} km</td>
+                                `;
+                                locationTableBody.appendChild(row);
+                            }
+                        });
+                    }
+                    if (!data.nearest_site) {
+                        const row = document.createElement('tr');
+                        row.innerHTML = `<td colspan="6">No nearby site found.</td>`;
+                        locationTableBody.appendChild(row);
+                    }
+                })
+                .catch(error => console.error('Error fetching nearest site data:', error));
+
+
+
         });
     </script>
 </body>
+
 </html>

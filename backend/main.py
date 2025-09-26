@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from datetime import datetime
 import sys
 import os
+from app.location import location_router
 
 # Add the backend directory to Python path
 backend_dir = os.path.dirname(os.path.abspath(__file__))
@@ -19,6 +20,8 @@ app = FastAPI(title="Simplified Complaint Solution API")
 
 # Mount static files
 app.mount("/static", StaticFiles(directory=os.path.join(backend_dir, "static")), name="static")
+
+app.include_router(location_router, prefix="/location", tags=["location"])
 
 # Allow CORS for dev (adjust in production)
 app.add_middleware(
