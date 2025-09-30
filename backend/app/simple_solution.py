@@ -1,5 +1,5 @@
 """
-Simplified complaint handling solution system
+Simplified complaint handling solution system - Paragraph Format (No Specific Locations)
 """
 
 import pandas as pd
@@ -11,6 +11,7 @@ import requests
 import json
 from typing import Dict, List, Optional, Tuple
 import sys
+import re
 
 # Add parent directory to path to import prompts
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -21,37 +22,102 @@ except ImportError:
     print("Warning: Could not import prompts module. Using fallback prompts.")
     
     def create_complaint_solution_prompt(complaint_details, similar_cases=None, location_info=None):
-        return f"Generate a solution for: {complaint_details.get('complaint', 'N/A')}"
+        return f"Generate paragraph solutions for: {complaint_details.get('complaint', 'N/A')}"
     
     def create_pattern_analysis_prompt(complaint_text, historical_data):
-        return f"Analyze patterns for: {complaint_text}"
+        return f"Analyze patterns for: {complaint_text} in paragraph format"
     
     def create_new_complaint_prompt(complaint_details, location_context=None):
-        return f"Generate new solution for: {complaint_details.get('complaint', 'N/A')}"
+        return f"Generate new paragraph solutions for: {complaint_details.get('complaint', 'N/A')}"
 
-def limit_to_sentences(text: str, max_sentences: int = 5) -> str:
+def remove_specific_locations(text: str) -> str:
     """
-    Limit text to maximum number of sentences
+    Remove specific location names like COL313I and numerical values from text
     """
     if not text or not text.strip():
         return text
     
-    # Split by common sentence endings
-    import re
-    sentences = re.split(r'[.!?]+', text.strip())
+    # Remove specific site names (patterns like COL313I, ABC123, etc.)
+    text = re.sub(r'\b[A-Z]+\d+[A-Z]*\b', 'the area', text)
     
-    # Remove empty sentences and clean up
-    sentences = [s.strip() for s in sentences if s.strip()]
+    # Remove specific numerical coordinates and measurements
+    text = re.sub(r'\b\d+\.\d+\b', '', text)  # Remove decimal numbers
+    text = re.sub(r'\b\d+\b', '', text)  # Remove integers
+    text = re.sub(r'\b\d+dBm\b', 'current signal level', text)  # Remove dBm values
+    text = re.sub(r'\b\d+%\b', '', text)  # Remove percentages
     
-    # Take only the first max_sentences
-    if len(sentences) > max_sentences:
-        sentences = sentences[:max_sentences]
+    # Clean up multiple spaces and commas
+    text = re.sub(r'\s+', ' ', text)
+    text = re.sub(r',\s*,', ',', text)
+    text = re.sub(r'\s,', ',', text)
     
-    # Rejoin with periods
-    result = '. '.join(sentences)
-    if result and not result.endswith('.'):
-        result += '.'
+    return text.strip()
+
+def format_solution_paragraphs(solution_text: str, solution_type: str) -> str:
+    """
+    Format solution text into proper paragraph format and remove specific locations
+    """
+    if not solution_text or not solution_text.strip():
+        return "No solution generated."
     
+    # Clean the solution text of specific locations and numbers
+    cleaned_text = remove_specific_locations(solution_text.strip())
+    
+    # Ensure paragraph format is consistent
+    paragraphs = []
+    
+    # Split by numbered points
+    raw_paragraphs = re.split(r'\n\s*\d+\.', cleaned_text)
+    raw_paragraphs = [para.strip() for para in raw_paragraphs if para.strip()]
+    
+    if len(raw_paragraphs) >= 2:
+        # Use the detected paragraphs with numbering
+        for i, paragraph in enumerate(raw_paragraphs[:4], 1):  # Max 4 paragraphs
+            if paragraph:
+                # Clean up the paragraph text and remove any remaining location references
+                clean_para = remove_specific_locations(paragraph)
+                clean_para = re.sub(r'^\s*[A-Z ]+:\s*', '', clean_para)  # Remove prefix labels if any
+                paragraphs.append(f"{i}. {clean_para.strip()}")
+    else:
+        # If no clear paragraphs detected, split by double newlines
+        raw_paragraphs = re.split(r'\n\s*\n', cleaned_text)
+        raw_paragraphs = [para.strip() for para in raw_paragraphs if para.strip()]
+        
+        for i, paragraph in enumerate(raw_paragraphs[:4], 1):
+            if paragraph:
+                clean_para = remove_specific_locations(paragraph)
+                paragraphs.append(f"{i}. {clean_para}")
+    
+    # Ensure we have at least one paragraph
+    if not paragraphs:
+        paragraphs = ["1. Please contact technical support for detailed analysis and assistance with this issue."]
+    
+    # Add metadata
+    formatted_solution = "\n\n".join(paragraphs)
+    formatted_solution += f"\n\n[Solution type: {solution_type}]"
+    
+    return formatted_solution
+
+def limit_to_paragraphs(text: str, max_paragraphs: int = 4) -> str:
+    """
+    Limit text to maximum number of paragraphs and remove specific locations
+    """
+    if not text or not text.strip():
+        return text
+    
+    # Clean text first
+    clean_text = remove_specific_locations(text)
+    
+    # Split by numbered points or double newlines
+    paragraphs = re.split(r'\n\s*\d+\.|\n\s*\n', clean_text.strip())
+    paragraphs = [para.strip() for para in paragraphs if para.strip()]
+    
+    # Take only the first max_paragraphs
+    if len(paragraphs) > max_paragraphs:
+        paragraphs = paragraphs[:max_paragraphs]
+    
+    # Reformat with consistent numbering
+    result = '\n\n'.join([f"{i+1}. {para}" for i, para in enumerate(paragraphs)])
     return result
 
 class SimpleComplaintHandler:
@@ -84,8 +150,8 @@ class SimpleComplaintHandler:
     
     def create_complaint_signature(self, complaint_text: str, conditions: Dict | None = None) -> str:
         """Create a unique signature for a complaint based on text and ONLY filled conditions"""
-        # Normalize complaint text
-        normalized_complaint = complaint_text.lower().strip()
+        # Normalize complaint text and remove locations for signature matching
+        normalized_complaint = remove_specific_locations(complaint_text.lower().strip())
         
         # Include ONLY filled relevant conditions in signature for exact matching
         condition_str = ""
@@ -167,18 +233,18 @@ class SimpleComplaintHandler:
                 # Skip invalid coordinate values
                 pass
             
-            hist_signature = self.create_complaint_signature(
-                str(row.get('Issue Description', '')), 
-                hist_conditions
-            )
+            hist_issue_desc = remove_specific_locations(str(row.get('Issue Description', '')))
+            hist_signature = self.create_complaint_signature(hist_issue_desc, hist_conditions)
             
             if current_signature == hist_signature:
-                return str(row.get('Solution', 'No solution found'))
+                # Format the exact match solution in paragraph format and remove locations
+                exact_solution = str(row.get('Solution', 'No solution found'))
+                return format_solution_paragraphs(exact_solution, "exact_match")
         
         return None
     
     def get_location_context(self, complaint_details: Dict) -> Optional[Dict]:
-        """Get location context from coordinates or location name"""
+        """Get location context from coordinates or location name (without specific site names)"""
         if self.location_data is None or self.location_data.empty:
             return None
         
@@ -186,6 +252,8 @@ class SimpleComplaintHandler:
         longitude = complaint_details.get('longitude')
         latitude = complaint_details.get('latitude')
         location_name = complaint_details.get('location')
+        
+        location_context = None
         
         if longitude is not None and latitude is not None:
             # Find closest location data point
@@ -207,42 +275,36 @@ class SimpleComplaintHandler:
                     continue
             
             if closest_location:
-                return {
-                    'site_name': closest_location.get('Site Name', 'Unknown'),
-                    'rsrp_range_1': closest_location.get('RSRP >-105dBm (%)', 'N/A'),
-                    'rsrp_range_2': closest_location.get('RSRP -105~-110dBm (%)', 'N/A'),
-                    'rsrp_range_3': closest_location.get('RSRP -110~-115dBm (%)', 'N/A'),
-                    'rsrp_weak': closest_location.get('RSRP <-115dBm (%)', 'N/A'),
-                    'coverage_quality': 'Good' if float(str(closest_location.get('RSRP >-105dBm (%)', '0')).replace('%', '')) > 70 else 'Poor'
+                location_context = {
+                    'coverage_quality': 'Good' if float(str(closest_location.get('RSRP >-105dBm (%)', '0')).replace('%', '')) > 70 else 'Poor',
+                    'signal_distribution': f"Good coverage, Fair coverage, Poor coverage based on area signal quality"
                 }
         
         # Try to find by location name if coordinates not available
-        if location_name:
+        if not location_context and location_name:
             for _, row in self.location_data.iterrows():
                 site_name = str(row.get('Site Name', '')).lower()
                 if location_name.lower() in site_name or site_name in location_name.lower():
-                    return {
-                        'site_name': row.get('Site Name', 'Unknown'),
-                        'rsrp_range_1': row.get('RSRP >-105dBm (%)', 'N/A'),
-                        'rsrp_range_2': row.get('RSRP -105~-110dBm (%)', 'N/A'),
-                        'rsrp_range_3': row.get('RSRP -110~-115dBm (%)', 'N/A'),
-                        'rsrp_weak': row.get('RSRP <-115dBm (%)', 'N/A'),
-                        'coverage_quality': 'Good' if float(str(row.get('RSRP >-105dBm (%)', '0')).replace('%', '')) > 70 else 'Poor'
+                    location_context = {
+                        'coverage_quality': 'Good' if float(str(row.get('RSRP >-105dBm (%)', '0')).replace('%', '')) > 70 else 'Poor',
+                        'signal_distribution': f"Good coverage, Fair coverage, Poor coverage based on area signal quality"
                     }
+                    break
         
-        return None
+        return location_context
     
     def find_similar_complaints(self, complaint_text: str, top_n: int = 5) -> List[Dict]:
         """Find similar complaints with different conditions"""
         if self.complaint_data is None or self.complaint_data.empty:
             return []
         
-        # Simple text similarity based on common words
-        complaint_words = set(complaint_text.lower().split())
+        # Clean complaint text for similarity matching
+        clean_complaint = remove_specific_locations(complaint_text.lower())
+        complaint_words = set(clean_complaint.split())
         similarities = []
         
         for _, row in self.complaint_data.iterrows():
-            issue_desc = str(row.get('Issue Description', ''))
+            issue_desc = remove_specific_locations(str(row.get('Issue Description', '')))
             issue_words = set(issue_desc.lower().split())
             
             # Calculate Jaccard similarity
@@ -251,35 +313,16 @@ class SimpleComplaintHandler:
             similarity = intersection / union if union > 0 else 0
             
             if similarity > 0.1:  # Only include if some similarity
+                # Clean the solution of specific locations before returning
+                row_data = row.to_dict()
+                if 'Solution' in row_data:
+                    row_data['Solution'] = remove_specific_locations(str(row_data['Solution']))
+                if 'Issue Description' in row_data:
+                    row_data['Issue Description'] = remove_specific_locations(str(row_data['Issue Description']))
+                
                 similarities.append({
                     'similarity': similarity,
-                    'data': row.to_dict()
-                })
-        
-        # Sort by similarity and return top_n
-        similarities.sort(key=lambda x: x['similarity'], reverse=True)
-        return [item['data'] for item in similarities[:top_n]]
-        """Find similar complaints with different conditions"""
-        if self.complaint_data is None or self.complaint_data.empty:
-            return []
-        
-        # Simple text similarity based on common words
-        complaint_words = set(complaint_text.lower().split())
-        similarities = []
-        
-        for _, row in self.complaint_data.iterrows():
-            issue_desc = str(row.get('Issue Description', ''))
-            issue_words = set(issue_desc.lower().split())
-            
-            # Calculate Jaccard similarity
-            intersection = len(complaint_words & issue_words)
-            union = len(complaint_words | issue_words)
-            similarity = intersection / union if union > 0 else 0
-            
-            if similarity > 0.1:  # Only include if some similarity
-                similarities.append({
-                    'similarity': similarity,
-                    'data': row.to_dict()
+                    'data': row_data
                 })
         
         # Sort by similarity and return top_n
@@ -297,7 +340,7 @@ class SimpleComplaintHandler:
                     "stream": False,
                     "options": {
                         "temperature": 0.7,
-                        "max_tokens": 150,  # Reduced for more concise responses
+                        "max_tokens": 350,
                         "top_p": 0.9
                     }
                 },
@@ -306,7 +349,9 @@ class SimpleComplaintHandler:
             
             if response.status_code == 200:
                 result = response.json()
-                return result.get('response', 'Unable to generate solution')
+                # Clean the response of any specific locations that might have been generated
+                response_text = result.get('response', 'Unable to generate solution')
+                return remove_specific_locations(response_text)
             else:
                 return f"LLM Error: HTTP {response.status_code}"
                 
@@ -317,12 +362,7 @@ class SimpleComplaintHandler:
     
     def generate_solution(self, complaint_details: Dict) -> Tuple[str, str]:
         """
-        Main method to generate solution following the specified logic:
-        1. Same complaint + same conditions -> same solution
-        2. Similar complaint + different conditions -> pattern analysis
-        3. New complaint -> LLM generation with context
-        
-        Returns: (solution_text, solution_type)
+        Main method to generate solution following the specified logic
         """
         complaint_text = complaint_details.get('complaint', '')
         
@@ -331,27 +371,25 @@ class SimpleComplaintHandler:
         if exact_solution:
             return exact_solution, "exact_match"
         
-        # Get location context for LLM prompts
+        # Get location context for LLM prompts (without specific site names)
         location_context = self.get_location_context(complaint_details)
         
         # Step 2: Check for similar complaints (different conditions)
         similar_complaints = self.find_similar_complaints(complaint_text)
         if similar_complaints:
-            # If we have location context and multiple similar cases, use comprehensive prompt
             if location_context and len(similar_complaints) >= 3:
                 prompt = create_complaint_solution_prompt(complaint_details, similar_complaints, location_context)
                 solution = self.call_ollama_llm(prompt)
-                return solution, "comprehensive_analysis"
+                return format_solution_paragraphs(solution, "comprehensive_analysis"), "comprehensive_analysis"
             else:
-                # Use pattern analysis prompt for simpler cases
                 prompt = create_pattern_analysis_prompt(complaint_text, similar_complaints)
                 solution = self.call_ollama_llm(prompt)
-                return solution, "pattern_analysis"
+                return format_solution_paragraphs(solution, "pattern_analysis"), "pattern_analysis"
         
         # Step 3: New complaint - use LLM with location context
         prompt = create_new_complaint_prompt(complaint_details, location_context)
         solution = self.call_ollama_llm(prompt)
-        return solution, "new_complaint"
+        return format_solution_paragraphs(solution, "new_complaint"), "new_complaint"
 
 # Global handler instance
 complaint_handler = None
@@ -365,8 +403,7 @@ def get_complaint_handler():
 
 def generate_solution(msisdn: str, complaint_text: str, **kwargs) -> str:
     """
-    Simplified interface for generating solutions - considers ALL columns for exact matching
-    Returns simplified answers (3-5 sentences). Exact matches return the same solution from dataset.
+    Simplified interface for generating solutions without specific location names
     """
     handler = get_complaint_handler()
     
@@ -386,9 +423,4 @@ def generate_solution(msisdn: str, complaint_text: str, **kwargs) -> str:
     
     solution, solution_type = handler.generate_solution(complaint_details)
     
-    # For exact matches, return the solution from dataset but limit to max 5 sentences
-    if solution_type == "exact_match":
-        return limit_to_sentences(solution.strip(), max_sentences=5)
-    
-    # For other types, add brief metadata and ensure solution is concise
-    return f"{solution.strip()}\n\n[Solution type: {solution_type}]"
+    return solution

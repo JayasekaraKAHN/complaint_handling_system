@@ -238,17 +238,14 @@
 
 
 
-
             fetch(`/location/location_data?lat=${lat}&lon=${lon}`)
                 .then(response => response.json())
                 .then(data => {
                     const locationTableBody = document.querySelector('#locationTable tbody');
                     locationTableBody.innerHTML = '';
-                    // Show the unique nearest site first
-                    let nearestName = null;
+                    // Only show the unique nearest site by site_name
                     if (data.nearest_site && data.nearest_site.site_name) {
                         const nearest = data.nearest_site;
-                        nearestName = nearest.site_name;
                         const row = document.createElement('tr');
                         row.innerHTML = `
                             <td><b>${nearest.site_name} (Nearest)</b></td>
@@ -259,25 +256,7 @@
                             <td>${(nearest.distance_km / 1000).toFixed(2)} km</td>
                         `;
                         locationTableBody.appendChild(row);
-                    }
-                    // Show all other cells (sites) in nearby_sites, excluding the nearest if already shown
-                    if (data.nearby_sites && data.nearby_sites.length > 0) {
-                        data.nearby_sites.forEach(site => {
-                            if (!nearestName || site.site_name !== nearestName) {
-                                const row = document.createElement('tr');
-                                row.innerHTML = `
-                                    <td>${site.site_name}</td>
-                                    <td>${site.rsrp_range_1}</td>
-                                    <td>${site.rsrp_range_2}</td>
-                                    <td>${site.rsrp_range_3}</td>
-                                    <td>${site.rsrp_below_115}</td>
-                                    <td>${(site.distance_km / 1000).toFixed(2)} km</td>
-                                `;
-                                locationTableBody.appendChild(row);
-                            }
-                        });
-                    }
-                    if (!data.nearest_site) {
+                    } else {
                         const row = document.createElement('tr');
                         row.innerHTML = `<td colspan="6">No nearby site found.</td>`;
                         locationTableBody.appendChild(row);

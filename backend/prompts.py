@@ -1,124 +1,150 @@
 """
-Simple prompts for Ollama Llama 3.2 1B LLM integration
+Simple prompts for Ollama Llama 3.2 1B LLM integration - Paragraph Format (No Specific Locations)
 """
+import re
 
 def create_complaint_solution_prompt(complaint_details: dict, similar_cases: list | None = None, location_info: dict | None = None):
     """
-    Create a comprehensive prompt for generating complaint solutions
-    
-    Args:
-        complaint_details: Dict with complaint information
-        similar_cases: List of similar complaint cases from database
-        location_info: Dict with location-based network information
+    Create a comprehensive prompt for generating complaint solutions in paragraph format without specific locations
     """
     
-    prompt = f"""You are a Sri Lankan telecom expert AI assistant. Generate a technical solution for the following customer complaint:
+    prompt = f"""You are a Sri Lankan telecom expert AI assistant. Generate prioritized technical solutions for this customer complaint:
 
 COMPLAINT DETAILS:
-- MSISDN: {complaint_details.get('msisdn', 'N/A')}
 - Issue Description: {complaint_details.get('complaint', 'N/A')}
-- Device/Settings/VPN/APN: {complaint_details.get('device_type_settings_vpn_apn', 'N/A')}
+- Device/Settings: {complaint_details.get('device_type_settings_vpn_apn', 'N/A')}
 - Signal Strength: {complaint_details.get('signal_strength', 'N/A')}
 - Quality of Signal: {complaint_details.get('quality_of_signal', 'N/A')}
-- Site KPI/Alarm: {complaint_details.get('site_kpi_alarm', 'N/A')}
-- Past Data Analysis: {complaint_details.get('past_data_analysis', 'N/A')}
-- Indoor/Outdoor Coverage: {complaint_details.get('indoor_outdoor_coverage_issue', 'N/A')}
-- Location: {complaint_details.get('location', 'N/A')}
-- Longitude: {complaint_details.get('longitude', 'N/A')}
-- Latitude: {complaint_details.get('latitude', 'N/A')}
+- Site Status: {complaint_details.get('site_kpi_alarm', 'N/A')}
+- Past Data: {complaint_details.get('past_data_analysis', 'N/A')}
+- Coverage Type: {complaint_details.get('indoor_outdoor_coverage_issue', 'N/A')}
+- General Area: {complaint_details.get('location', 'N/A')}
 
 """
 
     if similar_cases:
         prompt += "\nSIMILAR PAST CASES:\n"
-        for i, case in enumerate(similar_cases[:3], 1):  # Limit to top 3 similar cases
-            prompt += f"{i}. Issue: {case.get('Issue Description', 'N/A')}\n"
-            prompt += f"   Solution: {case.get('Solution', 'N/A')}\n"
+        for i, case in enumerate(similar_cases[:3], 1):
+            issue_desc = case.get('Issue Description', 'N/A')
+            solution = case.get('Solution', 'N/A')
+            # Remove specific location references from historical cases
+            issue_desc = re.sub(r'\b[A-Z]+\d+[A-Z]*\b', 'nearby site', issue_desc)
+            solution = re.sub(r'\b[A-Z]+\d+[A-Z]*\b', 'the area', solution)
+            prompt += f"{i}. Issue: {issue_desc}\n"
+            prompt += f"   Solution: {solution}\n"
             prompt += f"   Signal: {case.get('Signal Strength', 'N/A')}\n\n"
     
     if location_info:
-        prompt += f"\nLOCATION NETWORK DATA:\n"
-        prompt += f"- Site Name: {location_info.get('site_name', 'N/A')}\n"
-        prompt += f"- RSRP Range 1 (>-105dBm): {location_info.get('rsrp_range_1', 'N/A')}%\n"
-        prompt += f"- RSRP Range 2 (-105~-110dBm): {location_info.get('rsrp_range_2', 'N/A')}%\n"
-        prompt += f"- RSRP Range 3 (-110~-115dBm): {location_info.get('rsrp_range_3', 'N/A')}%\n"
-        prompt += f"- RSRP < -115dBm: {location_info.get('rsrp_weak', 'N/A')}%\n"
+        prompt += f"\nAREA NETWORK DATA:\n"
+        prompt += f"- Coverage Quality: {location_info.get('coverage_quality', 'N/A')}\n"
+        prompt += f"- Signal Distribution: {location_info.get('signal_distribution', 'N/A')}\n"
     
     prompt += """
 SOLUTION REQUIREMENTS:
-1. Provide a specific, actionable technical solution
-2. Consider signal strength and coverage issues
-3. Include any necessary site interventions or customer actions
-4. Keep the solution brief and concise (maximum 5 sentences)
-5. Focus on practical steps to resolve the issue
-6. Use simple, clear language that customers can understand
+Generate solutions in this EXACT paragraph format:
 
-Generate only the solution text without additional formatting or explanations:"""
+1. PRIMARY SOLUTION: [Start with most relevant solution] - Provide a small paragraph (2-3 sentences) explaining why this is the most likely solution based on the complaint details and signal conditions. Include specific technical reasoning and expected outcomes.
+
+2. ALTERNATIVE SOLUTION 1: [Second priority solution] - Write a small paragraph explaining this alternative approach, why it might work if the primary solution fails, and what specific conditions make it relevant.
+
+3. ALTERNATIVE SOLUTION 2: [Third priority solution] - Provide a brief paragraph describing this option, including when to consider it and what technical factors support this approach.
+
+4. ADDITIONAL RECOMMENDATION: [Final step] - Write a short paragraph suggesting verification steps, monitoring, or when to escalate to technical support.
+
+IMPORTANT FORMATTING RULES:
+- DO NOT mention specific site names, tower codes, or location identifiers
+- DO NOT include numerical values like exact signal measurements or coordinates
+- Use general terms like "your area", "nearby coverage", "local network" instead of specific locations
+- Focus on technical solutions without geographic specifics
+- Each solution must be a small paragraph (2-3 meaningful sentences) with clear explanation
+- Connect technical reasoning to specific complaint details and conditions
+- Explain why each solution is prioritized in that order
+- Include practical implementation steps in the explanations
+- Use clear, customer-friendly language with technical accuracy
+- Focus on Sri Lankan telecom network context and common issues
+
+Generate only the numbered solution paragraphs without additional headings or text:"""
 
     return prompt
 
 def create_pattern_analysis_prompt(complaint_text: str, historical_data: list):
     """
-    Create prompt for analyzing patterns in similar complaints
+    Create prompt for analyzing patterns in similar complaints - Paragraph Format (No Specific Locations)
     """
     
-    prompt = f"""Analyze the following complaint patterns to generate an appropriate solution:
+    # Clean complaint text of specific locations
+    clean_complaint = re.sub(r'\b[A-Z]+\d+[A-Z]*\b', 'the area', complaint_text)
+    
+    prompt = f"""Analyze complaint patterns and generate explained solutions:
 
-CURRENT COMPLAINT: {complaint_text}
+CURRENT COMPLAINT: {clean_complaint}
 
 HISTORICAL PATTERNS:
 """
     
     for i, case in enumerate(historical_data[:5], 1):
-        prompt += f"{i}. Issue: {case.get('Issue Description', 'N/A')}\n"
-        prompt += f"   Solution: {case.get('Solution', 'N/A')}\n"
-        prompt += f"   Conditions: Signal={case.get('Signal Strength', 'N/A')}, KPI={case.get('Site KPI/Alarm', 'N/A')}\n\n"
+        issue_desc = case.get('Issue Description', 'N/A')
+        solution = case.get('Solution', 'N/A')
+        # Remove specific location references
+        issue_desc = re.sub(r'\b[A-Z]+\d+[A-Z]*\b', 'nearby site', issue_desc)
+        solution = re.sub(r'\b[A-Z]+\d+[A-Z]*\b', 'the area', solution)
+        
+        prompt += f"{i}. Issue: {issue_desc}\n"
+        prompt += f"   Solution: {solution}\n"
+        prompt += f"   Conditions: Signal={case.get('Signal Strength', 'N/A')}\n\n"
     
     prompt += """
-Based on these patterns, identify:
-1. Common root causes
-2. Effective solution approaches
-3. Any environmental factors (signal, location, device)
+Generate solutions in this EXACT paragraph format:
 
-Generate a brief, tailored solution (maximum 5 sentences) considering the patterns above:"""
+1. PATTERN-BASED PRIMARY SOLUTION: [Most effective historical solution] - Write a small paragraph explaining why this solution has worked for similar cases, referencing general patterns from historical data and how they match the current complaint.
+
+2. PATTERN ALTERNATIVE: [Secondary approach from cases] - Provide a paragraph describing an alternative solution that worked in related scenarios, explaining the conditions where it was successful and why it's relevant here.
+
+3. ADAPTED SOLUTION: [Modified historical approach] - Write a brief paragraph suggesting how to adapt successful historical solutions to the current specific conditions, mentioning any adjustments needed.
+
+4. VERIFICATION & MONITORING: [Pattern validation] - Provide a short paragraph explaining how to verify the solution effectiveness and what patterns to monitor based on historical success metrics.
+
+IMPORTANT: Do not mention specific site names, location codes, or numerical values. Use general terms like "your location", "the network area", or "coverage zone". Generate only the numbered solution paragraphs:"""
     
     return prompt
 
 def create_new_complaint_prompt(complaint_details: dict, location_context: dict | None = None):
     """
-    Create prompt for completely new complaints not in dataset
+    Create prompt for new complaints in paragraph format without specific locations
     """
     
-    prompt = f"""You are analyzing a new type of complaint for Sri Lankan telecom network. Generate a technical solution:
+    # Clean complaint of specific locations
+    clean_complaint = re.sub(r'\b[A-Z]+\d+[A-Z]*\b', 'your area', complaint_details.get('complaint', 'N/A'))
+    
+    prompt = f"""You are analyzing a new telecom complaint in Sri Lanka. Generate explained technical solutions:
 
-NEW COMPLAINT:
-- Issue: {complaint_details.get('complaint', 'N/A')}
-- MSISDN: {complaint_details.get('msisdn', 'N/A')}
-- Device/Settings/VPN/APN: {complaint_details.get('device_type_settings_vpn_apn', 'N/A')}
+NEW COMPLAINT ANALYSIS:
+- Issue: {clean_complaint}
+- Device/Settings: {complaint_details.get('device_type_settings_vpn_apn', 'N/A')}
 - Signal Strength: {complaint_details.get('signal_strength', 'N/A')}
 - Quality of Signal: {complaint_details.get('quality_of_signal', 'N/A')}
-- Site KPI/Alarm: {complaint_details.get('site_kpi_alarm', 'N/A')}
-- Past Data Analysis: {complaint_details.get('past_data_analysis', 'N/A')}
+- Site Status: {complaint_details.get('site_kpi_alarm', 'N/A')}
+- Past Data: {complaint_details.get('past_data_analysis', 'N/A')}
 - Coverage Type: {complaint_details.get('indoor_outdoor_coverage_issue', 'N/A')}
-- Location: {complaint_details.get('location', 'N/A')}
-- Longitude: {complaint_details.get('longitude', 'N/A')}
-- Latitude: {complaint_details.get('latitude', 'N/A')}
+- General Area: {complaint_details.get('location', 'N/A')}
 """
 
     if location_context:
-        prompt += f"\nLOCATION ANALYSIS:\n"
+        prompt += f"\nAREA CONTEXT:\n"
         prompt += f"- Network Coverage: {location_context.get('coverage_quality', 'Unknown')}\n"
-        prompt += f"- Signal Quality Distribution: {location_context.get('signal_distribution', 'Unknown')}\n"
-        prompt += f"- Nearby Sites: {location_context.get('nearby_sites', 'Unknown')}\n"
+        prompt += f"- Signal Quality: {location_context.get('signal_distribution', 'Unknown')}\n"
 
     prompt += """
-SOLUTION APPROACH:
-1. Analyze the technical symptoms
-2. Consider common telecom issues (signal, interference, device, network)
-3. Provide specific troubleshooting steps
-4. Keep the solution brief and actionable (maximum 5 sentences)
-5. Use clear, customer-friendly language
+Generate solutions in this EXACT paragraph format:
 
-Generate a practical solution (maximum 5 sentences):"""
+1. SYMPTOM-BASED PRIMARY SOLUTION: [Most likely approach] - Write a small paragraph analyzing the technical symptoms and explaining why this solution addresses the root cause most effectively. Include specific technical reasoning based on the complaint details.
+
+2. TECHNICAL ALTERNATIVE: [Secondary technical approach] - Provide a paragraph explaining an alternative technical solution, describing different potential root causes and why this approach might be necessary.
+
+3. COMPREHENSIVE TROUBLESHOOTING: [Third approach] - Write a brief paragraph suggesting broader troubleshooting steps, explaining when to use this approach and what additional factors it addresses.
+
+4. ESCALATION RECOMMENDATION: [Final guidance] - Provide a short paragraph explaining when and how to escalate, including what information to provide to technical support for further analysis.
+
+CRITICAL: Avoid mentioning any specific site names, location codes, coordinates, or numerical measurements. Use general terms like "your location", "network in this area", or "local coverage". Generate only the numbered solution paragraphs:"""
     
     return prompt
