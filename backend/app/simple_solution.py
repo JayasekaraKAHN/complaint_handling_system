@@ -401,9 +401,156 @@ def get_complaint_handler():
         complaint_handler = SimpleComplaintHandler()
     return complaint_handler
 
-def generate_solution(msisdn: str, complaint_text: str, **kwargs) -> str:
+def parse_solution_to_template_format(solution_text: str) -> dict:
+    """
+    Parse the numbered paragraph solution into primary/alternate format for the template
+    """
+    if not solution_text or not solution_text.strip():
+        return {
+            "primary_solution": {
+                "title": "Primary Solution",
+                "description": "No solution available",
+                "steps": ["Contact technical support for assistance"]
+            },
+            "alternate_solution_1": {
+                "title": "",
+                "description": "",
+                "steps": []
+            },
+            "alternate_solution_2": {
+                "title": "",
+                "description": "",
+                "steps": []
+            }
+        }
+    
+    # Clean up the solution text
+    clean_text = solution_text.strip()
+    
+    # Split by periods followed by solution keywords (pattern-alternative, adapted solution, etc.)
+    solution_patterns = [
+        r'\.\s*(Pattern-based primary solution|Primary solution)',
+        r'\.\s*(Pattern alternative|Pattern-alternative|Alternative solution|Technical alternative)',
+        r'\.\s*(Adapted solution|Comprehensive troubleshooting|Additional recommendation)',
+        r'\.\s*(Verification & monitoring|Escalation recommendation|Monitoring)'
+    ]
+    
+    parts = []
+    current_part = clean_text
+    
+    # Find solution sections using the patterns
+    for pattern in solution_patterns:
+        match = re.search(pattern, current_part, re.IGNORECASE)
+        if match:
+            # Split at this point
+            before = current_part[:match.start()].strip()
+            after = current_part[match.start():].strip()
+            
+            if before and not any(before in p for p in parts):
+                parts.append(before)
+            current_part = after
+    
+    # Add the remaining part
+    if current_part and not any(current_part in p for p in parts):
+        parts.append(current_part)
+    
+    # If pattern-based splitting didn't work well, try simpler approach
+    if len(parts) < 2:
+        # Split by ". ." pattern which seems to be used as separator
+        parts = re.split(r'\.\s*\.', clean_text)
+        parts = [p.strip() for p in parts if p.strip() and len(p) > 20]
+    
+    # Clean up parts and remove leading numbers/dots
+    cleaned_parts = []
+    for part in parts:
+        cleaned = re.sub(r'^[\d\.\s]*', '', part).strip()
+        if cleaned and len(cleaned) > 15:
+            cleaned_parts.append(cleaned)
+    
+    result = {
+        "primary_solution": {},
+        "alternate_solution_1": {},
+        "alternate_solution_2": {}
+    }
+    
+    # Map parts to solution types
+    solution_keys = ["primary_solution", "alternate_solution_1", "alternate_solution_2"]
+    
+    for i, part in enumerate(cleaned_parts[:3]):
+        if part and len(part.strip()) > 5:
+            # Extract title and description
+            title = ""
+            description = part
+            
+            # Look for solution type indicators at the beginning
+            title_patterns = [
+                (r'^(Pattern-based primary solution|Primary solution)[:\-]?\s*', 'Primary Solution'),
+                (r'^(Pattern alternative|Pattern-alternative|Alternative solution|Technical alternative)[:\-]?\s*', 'Alternative Solution'),
+                (r'^(Adapted solution|Comprehensive troubleshooting|Additional recommendation)[:\-]?\s*', 'Additional Solution'),
+                (r'^(Verification & monitoring|Escalation recommendation|Monitoring)[:\-]?\s*', 'Verification & Monitoring')
+            ]
+            
+            for pattern, default_title in title_patterns:
+                match = re.search(pattern, part, re.IGNORECASE)
+                if match:
+                    title = default_title if i == 0 else f"Alternative Solution {i}"
+                    # Remove the matched title from description
+                    description = re.sub(pattern, '', part, flags=re.IGNORECASE).strip()
+                    break
+            
+            if not title:
+                title = "Primary Solution" if i == 0 else f"Alternative Solution {i}"
+            
+            # Clean up description - remove "Solution -" prefix if present
+            description = re.sub(r'^Solution\s*[\-:]\s*', '', description).strip()
+            
+            # Extract actionable steps
+            steps = []
+            
+            # Look for sentences with action words
+            sentences = [s.strip() for s in description.split('.') if s.strip()]
+            action_words = ['enable', 'activate', 'contact', 'visit', 'check', 'configure', 'restart', 'upgrade', 'repair', 'monitor', 'propose', 'direct', 'send']
+            
+            action_sentences = []
+            for sentence in sentences:
+                if any(word in sentence.lower() for word in action_words):
+                    action_sentences.append(sentence)
+            
+            if action_sentences:
+                steps = action_sentences[:3]  # Max 3 steps
+            else:
+                # If no action sentences, use first 2 sentences
+                steps = sentences[:2] if len(sentences) >= 2 else [description[:100] + "..." if len(description) > 100 else description]
+            
+            # Ensure we have at least one step
+            if not steps:
+                steps = [description[:100] + "..." if len(description) > 100 else description]
+            
+            result[solution_keys[i]] = {
+                "title": title,
+                "description": description,
+                "steps": steps
+            }
+    
+    # Fill in any missing solutions with empty objects
+    for key in ["primary_solution", "alternate_solution_1", "alternate_solution_2"]:
+        if key not in result or not result[key]:
+            result[key] = {
+                "title": "",
+                "description": "",
+                "steps": []
+            }
+    
+    return result
+    
+    return result
+    
+    return result
+
+def generate_solution(msisdn: str, complaint_text: str, **kwargs) -> dict:
     """
     Simplified interface for generating solutions without specific location names
+    Returns structured solution data for the template
     """
     handler = get_complaint_handler()
     
@@ -423,4 +570,11 @@ def generate_solution(msisdn: str, complaint_text: str, **kwargs) -> str:
     
     solution, solution_type = handler.generate_solution(complaint_details)
     
-    return solution
+    # Parse the solution into template format
+    parsed_solutions = parse_solution_to_template_format(solution)
+    
+    return {
+        "solutions": parsed_solutions,
+        "solution_type": solution_type,
+        "raw_solution": solution  # Keep original for debugging
+    }

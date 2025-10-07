@@ -10,6 +10,11 @@
 
 <body>
     <div class="container">
+        <nav class="main-nav">
+            <a href="/" class="nav-link active">🏠 Home</a>
+            <a href="/dashboard" class="nav-link">📊 MSISDN Dashboard</a>
+            <a href="/msisdn_details" class="nav-link">📱 MSISDN Details</a>
+        </nav>
         <h2>🔧 Complaint Solution System</h2>
         <p class="subtitle">AI-powered complaint resolution using pattern analysis and Ollama LLM</p>
 
@@ -205,26 +210,27 @@
 
                 const data = await response.json();
 
-                if (data.solution) {
-                    // Count filled optional fields
-                    const optionalFields = [
-                        formData.device_type_settings_vpn_apn, formData.signal_strength, formData.quality_of_signal,
-                        formData.site_kpi_alarm, formData.past_data_analysis, formData.indoor_outdoor_coverage_issue,
-                        formData.location, formData.longitude, formData.latitude
-                    ].filter(field => field !== null && field !== '').length;
-
-                    const fieldInfo = optionalFields > 0 ?
-                        `<div class="text-small text-muted mb-2">📊 Analyzed with ${optionalFields} additional field${optionalFields !== 1 ? 's' : ''}</div>` :
-                        `<div class="text-small text-muted mb-2">📊 Basic analysis (required fields only)</div>`;
-
-                    solutionDiv.innerHTML = fieldInfo + `<strong>🔧 Solution:</strong><br><br>${data.solution}`;
+                if (data.solutions) {
+                    // Store solution data and redirect to solution template
+                    const solutionData = {
+                        solutions: data.solutions,
+                        solution_type: data.solution_type,
+                        complaint: formData
+                    };
+                    
+                    // Store in localStorage for the solution template to access
+                    localStorage.setItem('solutionData', JSON.stringify(solutionData));
+                    
+                    // Redirect to solution template
+                    window.location.href = '/solution_template';
+                    
                 } else if (data.error) {
                     solutionDiv.innerHTML = `<strong>❌ Error:</strong> ${data.error}`;
+                    solutionDiv.className = 'solution show';
                 } else {
                     solutionDiv.innerHTML = `<strong>⚠️ No solution found.</strong>`;
+                    solutionDiv.className = 'solution show';
                 }
-
-                solutionDiv.className = 'solution show';
 
             } catch (err) {
                 solutionDiv.innerHTML = '<strong>❌ Network Error:</strong> Unable to connect to the server. Please check if the system is running.';

@@ -1,0 +1,1194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MSISDN Details - Complaint Handling System</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.3/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .navigation {
+            margin-bottom: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .rsrp-table th, .rsrp-table td {
+            font-size: 0.85rem;
+            vertical-align: middle;
+        }
+        .rsrp-site-cell {
+            font-weight: bold;
+            background-color: #f8f9fa;
+        }
+        .rsrp-site-id-cell {
+            background-color: #f8f9fa;
+        }
+        .rsrp-quality-cell {
+            text-align: center;
+        }
+        .rsrp-data-cell {
+            text-align: center;
+        }
+        .rsrp-cell-name {
+            font-weight: 500;
+        }
+        .map-preview {
+            height: 400px;
+            border: 1px solid #ddd;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="navigation">
+                <a href="/" class="btn btn-sm btn-outline-secondary">🏠 Home</a>
+                <a href="/dashboard" class="btn btn-sm btn-outline-primary">📊 Dashboard</a>
+            </div>
+            
+            <!-- Always show MSISDN Search Form for convenience -->
+            <div class="search-form mb-3">
+                <h1>{% if not result %}MSISDN Details Lookup{% else %}MSISDN Details: {{ result.get('MSISDN', '') }}{% endif %}</h1>
+                <form method="get" action="/msisdn_details">
+                    <div class="input-group">
+                        <input type="text" id="msisdn" name="msisdn" 
+                               class="form-control"
+                               placeholder="e.g., 94771234567" 
+                               value="{{ msisdn or '' }}" required>
+                        <button type="submit" class="btn btn-primary">Search Details</button>
+                    </div>
+                </form>
+                {% if error %}
+                <div class="alert alert-danger mt-3">
+                    {{ error }}
+                </div>
+                {% endif %}
+            </div>
+            
+            {% if result %}
+            <div class="d-flex justify-content-between align-items-center mt-3">
+                <p class="mb-0">Device: {{ result.get('Brand', 'Unknown') }} {{ result.get('Model', 'Unknown') }}</p>
+                <p class="mb-0">Location: {{ result.get('Region', 'Unknown') }}, {{ result.get('District', 'Unknown') }}</p>
+            </div>
+            {% endif %}
+        </div>
+
+        {% if result %}
+        <!-- Tab Navigation -->
+        <ul class="nav nav-tabs" id="infoTabs" role="tablist">
+          <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" type="button" role="tab" aria-controls="details" aria-selected="true">Subscriber Details</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="location-tab" data-bs-toggle="tab" data-bs-target="#location" type="button" role="tab" aria-controls="location" aria-selected="false">Location Map</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="graphs-tab" data-bs-toggle="tab" data-bs-target="#graphs" type="button" role="tab" aria-controls="graphs" aria-selected="false">Usage Graphs</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="rsrp-tab" data-bs-toggle="tab" data-bs-target="#rsrp" type="button" role="tab" aria-controls="rsrp" aria-selected="false">RSRP Data</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="lte-util-tab" data-bs-toggle="tab" data-bs-target="#lte-util" type="button" role="tab" aria-controls="lte-util" aria-selected="false">LTE Utilization</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="nearest-locations-tab" data-bs-toggle="tab" data-bs-target="#nearest-locations" type="button" role="tab" aria-controls="nearest-locations" aria-selected="false">Nearest Locations</button>
+          </li>
+          <li class="nav-item" role="presentation">
+            <button class="nav-link" id="reference-locations-tab" data-bs-toggle="tab" data-bs-target="#reference-locations" type="button" role="tab" aria-controls="reference-locations" aria-selected="false">Reference Locations</button>
+          </li>
+        </ul>
+        
+        <!-- Tab Content -->
+        <div class="tab-content" id="infoTabsContent">
+        {% if result %}
+          <div class="tab-pane fade show active" id="details" role="tabpanel" aria-labelledby="details-tab">
+            <div class="card p-4 mt-3">
+              1. Subscriber Identification
+              <table class="table table-bordered">
+                <tr>
+                  <td><strong>MSISDN:</strong></td>
+                  <td>{{ result['MSISDN'] }}</td>
+                </tr>
+                <tr>
+                  <td><strong>IMSI:</strong></td>
+                  <td>{{ result['IMSI'] }}</td>
+                </tr>
+                <tr>
+                  <td><strong>IMEI:</strong></td>
+                  <td>{{ result['IMEI']}}</td>
+                </tr>
+              </table>
+
+              <br>
+              2. Device Information
+              <table class="table table-bordered">
+                <tr>
+                  <td><strong>Device Manufacturer:</strong></td>
+                  <td>{{ result['Brand']}}</td>
+                </tr>
+                <tr>
+                  <td><strong>Model</strong></td>
+                  <td>{{ result['Model'] }}</td>
+                </tr>
+                <tr>
+                  <td><strong>Device Type</strong></td>
+                  <td>{{ result['Device Type'] }}</td>
+                </tr>
+                <tr>
+                  <td><strong>Primary Hardware Type</strong></td>
+                  <td>{{ result['Primary Hardware Type'] }}</td>
+                </tr>
+                <tr>
+                  <td><strong>Year Released</strong></td>
+                  <td>{{ result['Year Released'] }}</td>
+                </tr>
+                <tr>
+                  <td><strong>Operating System Version</strong></td>
+                  <td>{{ result['OS'] }}</td>
+                </tr>
+                <tr>
+                  <td><strong>VoLTE Support</strong></td>
+                  <td>{{ result['VoLTE'] }}</td>
+                </tr>
+                <tr>
+                  <td><strong>SIM Type</strong></td>
+                  <td>{{ result['SIM Type'] }}</td>
+                </tr>
+                <tr>
+                  <td><strong>VoLTE-provisioning Status</strong></td> <!----></td>
+                </tr>
+              </table>
+              <br>
+
+              3. Location Data
+              <table class="table table-bordered">
+                <tr>
+                  <td>Recent Cell Location</td>
+                </tr>
+                <tr>
+                  <td><strong>Cell Code:</strong></td>
+                  <td>{{ result['Cellcode'] }}</td>
+                </tr>
+                <tr>
+                  <td><strong>Site Name:</strong></td>
+                  <td>{{ result['Sitename'] }}</td>
+                </tr>
+                <tr>
+                  <td><strong>Coordinates:</strong></td>
+                  <td>Lat: {{ result['Lat'] }}, Lon: {{ result['Lon'] }}</td>
+                </tr>
+                <tr>
+                  <td><strong>Region:</strong></td>
+                  <td>{{ result['Region'] }}</td>
+                </tr>
+                <tr>
+                  <td><strong>District:</strong></td>
+                  <td>{{ result['District'] }}</td>
+                </tr>
+                <tr>
+                  <td><strong>LAC:</strong></td>
+                  <td>{{ result['LAC'] }}</td>
+                </tr>
+                <tr>
+                  <td><strong>Cell_ID:</strong></td>
+                  <td>{{ result['CELL'] }}</td>
+                </tr>
+                
+                <!-- Common Locations from Reference Data -->
+                {% if result["Common_Locations"] and result["Common_Locations"]|length > 0 %}
+                <tr>
+                  <td colspan="2" style="background-color: #e9ecef; font-weight: bold; text-align: center;">
+                    Common Cell Locations in Same Area ({{ result["Common_Locations"]|length }} found)
+                  </td>
+                </tr>
+                {% for loc in result["Common_Locations"] %}
+                <tr style="background-color: #f8f9fa;">
+                  <td><strong>Location {{ loop.index }}</strong></td>
+                  <td>{{ loc.SITE_NAME }} ({{ loc.CELL_CODE }})</td>
+                </tr>
+                <tr>
+                  <td><strong>Coordinates:</strong></td>
+                  <td>
+                    {% if loc.LAT and loc.LON and loc.LAT != 'Not Found' and loc.LON != 'Not Found' %}
+                    Lat: {{ loc.LAT }}, Lon: {{ loc.LON }}
+                    {% else %}
+                    Not Available
+                    {% endif %}
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>District/Region:</strong></td>
+                  <td>{{ loc.DISTRICT }}, {{ loc.REGION }}</td>
+                </tr>
+                <tr>
+                  <td><strong>Network Type:</strong></td>
+                  <td>{{ loc.TYPE }} (Status: {{ loc.STATUS }})</td>
+                </tr>
+                <tr>
+                  <td><strong>LAC/Cell ID:</strong></td>
+                  <td>LAC: {{ loc.LAC }}, Cell: {{ loc.CELL }}</td>
+                </tr>
+                {% if loc.ONAIR_DATE and loc.ONAIR_DATE != 'Unknown' %}
+                <tr>
+                  <td><strong>On-Air Date:</strong></td>
+                  <td>{{ loc.ONAIR_DATE }}</td>
+                </tr>
+                {% endif %}
+                {% if not loop.last %}
+                <tr>
+                  <td colspan="2" style="border-top: 2px solid #dee2e6; padding: 5px;"></td>
+                </tr>
+                {% endif %}
+                {% endfor %}
+                {% else %}
+                <tr>
+                  <td><strong>Common Locations:</strong></td>
+                  <td class="text-muted">No common locations found in reference data for this area.</td>
+                </tr>
+                {% endif %}
+              </table>
+
+              <br>
+            </div>
+          </div>
+
+
+          <!-- Location Map Tab Content-->
+          <div class="tab-pane fade" id="location" role="tabpanel" aria-labelledby="location-tab">
+            <div class="card p-4 mt-3">
+              <div class="map-preview mb-3">
+                {% if has_map %}
+                <iframe src="{{ url_for('static', filename='temp_map.html') }}" width="100%" height="100%"
+                  frameborder="0"></iframe>
+                {% else %}
+                <div class="d-flex align-items-center justify-content-center h-100 bg-light">
+                  <div class="text-center">
+                    <p class="mb-2">Other regions map preview not available</p>
+                    <small class="text-muted">Click "View Other Regions Map" to explore</small>
+                  </div>
+                </div>
+                {% endif %}
+              </div>
+
+              <div class="d-flex gap-2 flex-wrap">
+                <a href="{{ url_for('show_map', msisdn=result.MSISDN) }}" class="btn btn-success" target="_blank">
+                  View Full Map
+                </a>
+              </div>
+            </div>
+          </div>
+
+          <div class="tab-pane fade" id="graphs" role="tabpanel" aria-labelledby="graphs-tab">
+            <div class="row mt-3">
+              <!-- Monthly Volume Chart (Line Chart) -->
+              <div class="col-md-6 mb-4">
+                <div class="card border p-3">
+                  <h6 class="card-title">Monthly Data Usage by Network Type</h6>
+                  <div class="chart-container" style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="monthlyVolumeChart"></canvas>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Total Volume Chart (Bar Chart) -->
+              <div class="col-md-6 mb-4">
+                <div class="card border p-3">
+                  <h6 class="card-title">Total Monthly Data Usage</h6>
+                  <div class="chart-container" style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="totalVolumeChart"></canvas>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Voice Usage Chart -->
+              <div class="col-md-6 mb-4">
+                <div class="card border p-3">
+                  <h6 class="card-title">Monthly Voice Usage (Incoming & Outgoing)</h6>
+                  <div class="chart-container" style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="voiceUsageChart"></canvas>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- SMS Usage Chart -->
+              <div class="col-md-6 mb-4">
+                <div class="card border p-3">
+                  <h6 class="card-title">Monthly SMS Usage (Incoming & Outgoing)</h6>
+                  <div class="chart-container" style="position: relative; height: 300px; width: 100%;">
+                    <canvas id="smsUsageChart"></canvas>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RSRP Data Tab Content -->
+          <div class="tab-pane fade" id="rsrp" role="tabpanel" aria-labelledby="rsrp-tab">
+            <div class="card p-4 mt-3">
+              <div class="row mt-3">
+                <div class="col-md-12 mb-4">
+                  <div class="card border p-3">
+                    <h6 class="card-title">Monthly Usage Data</h6>
+                    {% if result['Monthly Usage'] and result['Monthly Usage']['months'] %}
+                    <div class="table-responsive mb-3">
+                      <table class="table table-striped">
+                        <thead>
+                          <tr>
+                            <th>Month</th>
+                            <th>2G (MB)</th>
+                            <th>3G (MB)</th>
+                            <th>4G (MB)</th>
+                            <th>5G (MB)</th>
+                            <th>Total (MB)</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for i in range(result['Monthly Usage']['months']|length) %}
+                          <tr>
+                            <td>{{ result['Monthly Usage']['months'][i] }}</td>
+                            <td>{{ result['Monthly Usage']['2G'][i] }}</td>
+                            <td>{{ result['Monthly Usage']['3G'][i] }}</td>
+                            <td>{{ result['Monthly Usage']['4G'][i] }}</td>
+                            <td>{{ result['Monthly Usage']['5G'][i] }}</td>
+                            <td>{{ result['Monthly Usage']['Total'][i] }}</td>
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                    <canvas id="usageChart" height="300"></canvas>
+                    {% else %}
+                    <div class="alert alert-info">No usage data available for this MSISDN.</div>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+                              Filters</button>
+                          </div>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- RSRP Table -->
+                <div class="table-responsive">
+                  <table class="table table-bordered rsrp-table" id="rsrpTable">
+                    <thead>
+                      <tr>
+                        <th>Site Name</th>
+                        <th>Site ID</th>
+                        <th>Cell Name</th>
+                        <th>
+                          <div class="text-center">RSRP Range 1 (>-105dBm) %</div>
+                          <div class="mt-2">
+                            <div class="row g-1">
+                              <div class="col-6">
+                                <input type="number" name="rsrp_range1_min" placeholder="Min %" step="0.01"
+                                  class="form-control form-control-sm" form="rsrpFilterForm" oninput="debounceRsrpFilter()">
+                              </div>
+                              <div class="col-6">
+                                <input type="number" name="rsrp_range1_max" placeholder="Max %" step="0.01"
+                                  class="form-control form-control-sm" form="rsrpFilterForm" oninput="debounceRsrpFilter()">
+                              </div>
+                            </div>
+                          </div>
+                        </th>
+                        <th>
+                          <div class="text-center">RSRP Range 2 (-105~-110dBm) %</div>
+                          <div class="mt-2">
+                            <div class="row g-1">
+                              <div class="col-6">
+                                <input type="number" name="rsrp_range2_min" placeholder="Min %" step="0.01"
+                                  class="form-control form-control-sm" form="rsrpFilterForm" oninput="debounceRsrpFilter()">
+                              </div>
+                              <div class="col-6">
+                                <input type="number" name="rsrp_range2_max" placeholder="Max %" step="0.01"
+                                  class="form-control form-control-sm" form="rsrpFilterForm" oninput="debounceRsrpFilter()">
+                              </div>
+                            </div>
+                          </div>
+                        </th>
+                        <th>
+                          <div class="text-center">RSRP Range 3 (-110~-115dBm) %</div>
+                          <div class="mt-2">
+                            <div class="row g-1">
+                              <div class="col-6">
+                                <input type="number" name="rsrp_range3_min" placeholder="Min %" step="0.01"
+                                  class="form-control form-control-sm" form="rsrpFilterForm" oninput="debounceRsrpFilter()">
+                              </div>
+                              <div class="col-6">
+                                <input type="number" name="rsrp_range3_max" placeholder="Max %" step="0.01"
+                                  class="form-control form-control-sm" form="rsrpFilterForm" oninput="debounceRsrpFilter()">
+                              </div>
+                            </div>
+                          </div>
+                        </th>
+                        <th>
+                          <div class="text-center">RSRP < -115dBm %</div>
+                              <div class="mt-2">
+                                <div class="row g-1">
+                                  <div class="col-6">
+                                    <input type="number" name="rsrp_range4_min" placeholder="Min %" step="0.01"
+                                      class="form-control form-control-sm" form="rsrpFilterForm"
+                                      oninput="debounceRsrpFilter()">
+                                  </div>
+                                  <div class="col-6">
+                                    <input type="number" name="rsrp_range4_max" placeholder="Max %" step="0.01"
+                                      class="form-control form-control-sm" form="rsrpFilterForm"
+                                      oninput="debounceRsrpFilter()">
+                                  </div>
+                                </div>
+                              </div>
+                        </th>
+                        <th>
+                          <div class="text-center">Good Signal Avg (Range 1+2) %</div>
+                        </th>
+                        <th>
+                          <div class="text-center">Poor Signal Avg (Range 3+4) %</div>
+                        </th>
+                        <th>
+                          <div class="text-center">Signal Quality</div>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody id="rsrpTableBody">
+                      {% if result and result['RSRP Data'] %}
+                      {% set grouped_rsrp = {} %}
+                      {% for row in result['RSRP Data'] %}
+                      {% set site_name = row['Site_Name'] %}
+                      {% set site_id = row['Site_ID'] %}
+                      {% if site_name not in grouped_rsrp %}
+                      {% set _ = grouped_rsrp.update({site_name: {}}) %}
+                      {% endif %}
+                      {% if site_id not in grouped_rsrp[site_name] %}
+                      {% set _ = grouped_rsrp[site_name].update({site_id: []}) %}
+                      {% endif %}
+                      {% set _ = grouped_rsrp[site_name][site_id].append(row) %}
+                      {% endfor %}
+
+                      {% for site_name, site_id_groups in grouped_rsrp.items() %}
+                      {% set total_site_name_rows = site_id_groups.values() | map('length') | sum %}
+                      {% set site_name_row_index = [0] %}
+                      {% set good_signal_avg = None %}
+                      {% set poor_signal_avg = None %}
+                      {% set signal_quality = None %}
+                      {% for site_id, site_id_rows in site_id_groups.items() %}
+                      {% for row in site_id_rows %}
+                      {% if good_signal_avg is none %}
+                      {% set good_signal_avg = row.get('Good Signal Avg (Range 1+2) %', 0) %}
+                      {% endif %}
+                      {% if poor_signal_avg is none %}
+                      {% set poor_signal_avg = row.get('Poor Signal Avg (Range 3+4) %', 0) %}
+                      {% endif %}
+                      {% if signal_quality is none %}
+                      {% set signal_quality = row.get('Signal Quality', 'Poor') %}
+                      {% endif %}
+                      <tr>
+                        {% if site_name_row_index[0] == 0 %}
+                        <td rowspan="{{ total_site_name_rows }}" class="rsrp-site-cell">{{ site_name }}</td>
+                        {% endif %}
+                        {% if loop.index == 1 %}
+                        <td rowspan="{{ site_id_rows|length }}" class="rsrp-site-id-cell">{{ site_id }}</td>
+                        {% endif %}
+                        <td class="rsrp-cell-name">{{ row['Cell_Name'] }}</td>
+                        <td class="rsrp-data-cell">{{ row['RSRP Range 1 (>-105dBm) %'] }}%</td>
+                        <td class="rsrp-data-cell">{{ row['RSRP Range 2 (-105~-110dBm) %'] }}%</td>
+                        <td class="rsrp-data-cell">{{ row['RSRP Range 3 (-110~-115dBm) %'] }}%</td>
+                        <td class="rsrp-data-cell">{{ row['RSRP < -115dBm %'] }}%</td>
+                            {% if site_name_row_index[0] == 0 %}
+                        <td rowspan="{{ total_site_name_rows }}" class="rsrp-data-cell">{{ good_signal_avg }}%</td>
+                        <td rowspan="{{ total_site_name_rows }}" class="rsrp-data-cell">{{ poor_signal_avg }}%</td>
+                        {% endif %}
+                        {% if site_name_row_index[0] == 0 %}
+                        <td rowspan="{{ total_site_name_rows }}" class="rsrp-quality-cell">
+                          <span
+                            class="badge {% if signal_quality == 'Good' %}bg-success{% else %}bg-danger{% endif %}">
+                            {{ signal_quality }}
+                          </span>
+                        </td>
+                        {% endif %}
+                      </tr>
+                      {% set _ = site_name_row_index.append(site_name_row_index.pop() + 1) %}
+                      {% endfor %}
+                      {% endfor %}
+                      {% endfor %}
+                      {% else %}
+                      <tr>
+                        <td colspan="12" class="text-center text-muted">No RSRP data available for this MSISDN</td>
+                      </tr>
+                      {% endif %}
+                    </tbody>
+                  </table>
+                  <div id="rsrpStatus" class="rsrp-status"></div>
+                </div>
+              </div>
+
+              <!-- Common Locations RSRP Data -->
+              {% if result["Common Cell Locations"] %}
+              {% set all_common_rsrp_data = [] %}
+              {% for loc in result["Common Cell Locations"] %}
+              {% set loc_rsrp_data = loc.get('RSRP_DATA', []) %}
+              {% for row in loc_rsrp_data %}
+              {% set enhanced_row = row.copy() %}
+              {% set _ = all_common_rsrp_data.append(enhanced_row) %}
+              {% endfor %}
+              {% endfor %}
+
+              {% if all_common_rsrp_data %}
+              <hr class="my-4">
+              <div class="rsrp-section">
+                <h5 class="mb-3">RSRP for Common Locations ({{ result["Common Cell Locations"]|length }} locations)</h5>
+
+                <!-- RSRP Filtering Controls for all common locations -->
+                <div class="row mb-3">
+                  <div class="col-md-12">
+                    <div class="rsrp-filter-controls">
+                      <form id="commonRsrpFilterForm">
+                        <input type="hidden" name="msisdn" value="{{ result['MSISDN'] }}">
+                        <div class="row g-2 mb-2">
+                          <div class="col-md-2">
+                            <input type="text" name="cell_name_filter" placeholder="Filter by Cell Name..."
+                              class="form-control form-control-sm" oninput="debounceCommonRsrpFilter()"
+                              onkeyup="debounceCommonRsrpFilter()">
+                          </div>
+                          <div class="col-md-2">
+                            <input type="text" name="site_name_filter" placeholder="Filter by Site Name..."
+                              class="form-control form-control-sm" oninput="debounceCommonRsrpFilter()"
+                              onkeyup="debounceCommonRsrpFilter()">
+                          </div>
+                          <div class="col-md-2">
+                            <select name="sort_by" class="form-select form-select-sm" onchange="debounceCommonRsrpFilter()">
+                              <option value="">Sort by...</option>
+                              <option value="Site_Name">Site Name</option>
+                              <option value="Cell_Name">Cell Name</option>
+                              <option value="RSRP Range 1 (>-105dBm) %">RSRP Range 1</option>
+                              <option value="RSRP Range 2 (-105~-110dBm) %">RSRP Range 2</option>
+                              <option value="RSRP Range 3 (-110~-115dBm) %">RSRP Range 3</option>
+                              <option value="RSRP < -115dBm %">RSRP < -115dBm</option>
+                            </select>
+                          </div>
+                          <div class="col-md-2">
+                            <select name="sort_order" class="form-select form-select-sm"
+                              onchange="debounceCommonRsrpFilter()">
+                              <option value="asc">Ascending</option>
+                              <option value="desc">Descending</option>
+                            </select>
+                          </div>
+                          <div class="col-md-2">
+                            <button type="button" onclick="clearCommonRsrpFilters()" class="btn btn-secondary btn-sm">Clear
+                              Filters</button>
+                          </div>
+                        </div>
+                      </form>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Unified RSRP Table for all common locations -->
+                <div class="table-responsive">
+                  <table class="table table-bordered rsrp-table" id="commonRsrpTable">
+                    <thead>
+                      <tr>
+                        <th>Site Name</th>
+                        <th>Site ID</th>
+                        <th>Cell Name</th>
+                        <th>
+                          <div class="text-center">RSRP Range 1 (>-105dBm) %</div>
+                          <div class="mt-2">
+                            <div class="row g-1">
+                              <div class="col-6">
+                                <input type="number" name="rsrp_range1_min" placeholder="Min %" step="0.01"
+                                  class="form-control form-control-sm" form="commonRsrpFilterForm"
+                                  oninput="debounceCommonRsrpFilter()">
+                              </div>
+                              <div class="col-6">
+                                <input type="number" name="rsrp_range1_max" placeholder="Max %" step="0.01"
+                                  class="form-control form-control-sm" form="commonRsrpFilterForm"
+                                  oninput="debounceCommonRsrpFilter()">
+                              </div>
+                            </div>
+                          </div>
+                        </th>
+                        <th>
+                          <div class="text-center">RSRP Range 2 (-105~-110dBm) %</div>
+                          <div class="mt-2">
+                            <div class="row g-1">
+                              <div class="col-6">
+                                <input type="number" name="rsrp_range2_min" placeholder="Min %" step="0.01"
+                                  class="form-control form-control-sm" form="commonRsrpFilterForm"
+                                  oninput="debounceCommonRsrpFilter()">
+                              </div>
+                              <div class="col-6">
+                                <input type="number" name="rsrp_range2_max" placeholder="Max %" step="0.01"
+                                  class="form-control form-control-sm" form="commonRsrpFilterForm"
+                                  oninput="debounceCommonRsrpFilter()">
+                              </div>
+                            </div>
+                          </div>
+                        </th>
+                        <th>
+                          <div class="text-center">RSRP Range 3 (-110~-115dBm) %</div>
+                          <div class="mt-2">
+                            <div class="row g-1">
+                              <div class="col-6">
+                                <input type="number" name="rsrp_range3_min" placeholder="Min %" step="0.01"
+                                  class="form-control form-control-sm" form="commonRsrpFilterForm"
+                                  oninput="debounceCommonRsrpFilter()">
+                              </div>
+                              <div class="col-6">
+                                <input type="number" name="rsrp_range3_max" placeholder="Max %" step="0.01"
+                                  class="form-control form-control-sm" form="commonRsrpFilterForm"
+                                  oninput="debounceCommonRsrpFilter()">
+                              </div>
+                            </div>
+                          </div>
+                        </th>
+                        <th>
+                          <div class="text-center">RSRP < -115dBm %</div>
+                              <div class="mt-2">
+                                <div class="row g-1">
+                                  <div class="col-6">
+                                    <input type="number" name="rsrp_range4_min" placeholder="Min %" step="0.01"
+                                      class="form-control form-control-sm" form="commonRsrpFilterForm"
+                                      oninput="debounceCommonRsrpFilter()">
+                                  </div>
+                                  <div class="col-6">
+                                    <input type="number" name="rsrp_range4_max" placeholder="Max %" step="0.01"
+                                      class="form-control form-control-sm" form="commonRsrpFilterForm"
+                                      oninput="debounceCommonRsrpFilter()">
+                                  </div>
+                                </div>
+                              </div>
+                        </th>
+                        <th>
+                          <div class="text-center">Good Signal Avg (Range 1+2) %</div>
+                        </th>
+                        <th>
+                          <div class="text-center">Poor Signal Avg (Range 3+4) %</div>
+                        </th>
+                        <th>
+                          <div class="text-center">Signal Quality</div>
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody id="commonRsrpTableBody">
+                      {% set grouped_rsrp = {} %}
+                      {% for row in all_common_rsrp_data %}
+                      {% set site_name = row['Site_Name'] %}
+                      {% set site_id = row['Site_ID'] %}
+                      {% if site_name not in grouped_rsrp %}
+                      {% set _ = grouped_rsrp.update({site_name: {}}) %}
+                      {% endif %}
+                      {% if site_id not in grouped_rsrp[site_name] %}
+                      {% set _ = grouped_rsrp[site_name].update({site_id: []}) %}
+                      {% endif %}
+                      {% set _ = grouped_rsrp[site_name][site_id].append(row) %}
+                      {% endfor %}
+
+                      {% for site_name, site_id_groups in grouped_rsrp.items() %}
+                      {% set site_total_rows = [] %}
+                      {% for site_id, site_id_rows in site_id_groups.items() %}
+                      {% for row in site_id_rows %}
+                      {% set _ = site_total_rows.append(1) %}
+                      {% endfor %}
+                      {% endfor %}
+                      {% set site_row_count = site_total_rows|length %}
+                      {% set site_name_row_index = [0] %}
+                      {% set first_row = None %}
+                      {% for site_id, site_id_rows in site_id_groups.items() %}
+                      {% for row in site_id_rows %}
+                      {% if first_row is none %}
+                      {% set first_row = row %}
+                      {% endif %}
+                      <tr>
+                        {% if site_name_row_index[0] == 0 %}
+                        <td rowspan="{{ site_row_count }}" class="rsrp-site-cell">{{ site_name }}</td>
+                        {% endif %}
+                        {% if loop.index == 1 %}
+                        <td rowspan="{{ site_id_rows|length }}" class="rsrp-site-id-cell">{{ site_id }}</td>
+                        {% endif %}
+                        <td class="rsrp-cell-name">{{ row['Cell_Name'] }}</td>
+                        <td class="rsrp-data-cell">{{ row['RSRP Range 1 (>-105dBm) %'] }}%</td>
+                        <td class="rsrp-data-cell">{{ row['RSRP Range 2 (-105~-110dBm) %'] }}%</td>
+                        <td class="rsrp-data-cell">{{ row['RSRP Range 3 (-110~-115dBm) %'] }}%</td>
+                        <td class="rsrp-data-cell">{{ row['RSRP < -115dBm %'] }}%</td>
+                            {% if site_name_row_index[0] == 0 %}
+                        <td rowspan="{{ site_row_count }}" class="rsrp-data-cell">{{ first_row.get('Good Signal Avg (Range 1+2) %', 0) }}%</td>
+                        <td rowspan="{{ site_row_count }}" class="rsrp-data-cell">{{ first_row.get('Poor Signal Avg (Range 3+4) %', 0) }}%</td>
+                        {% endif %}
+                        {% if site_name_row_index[0] == 0 %}
+                        <td rowspan="{{ site_row_count }}" class="rsrp-quality-cell">
+                          <span
+                            class="badge {% if first_row.get('Signal Quality', 'Poor') == 'Good' %}bg-success{% else %}bg-danger{% endif %}">
+                            {{ first_row.get('Signal Quality', 'Poor') }}
+                          </span>
+                        </td>
+                        {% endif %}
+                      </tr>
+                      {% set _ = site_name_row_index.append(site_name_row_index.pop() + 1) %}
+                      {% endfor %}
+                      {% endfor %}
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                  <div id="commonRsrpStatus" class="rsrp-status"></div>
+                </div>
+              </div>
+              {% endif %}
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- LTE Utilization Tab -->
+          <div class="tab-pane fade" id="lte-util" role="tabpanel" aria-labelledby="lte-util-tab">
+            <div class="card p-4 mt-3">
+              <h5 class="mb-3">LTE Utilization Data</h5>
+              
+              {% if result['LTE Utilization Data'] and result['LTE Utilization Data']|length > 0 %}
+              <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                  <thead class="table-dark">
+                    <tr>
+                      <th>Cell ID</th>
+                      <th>Site ID</th>
+                      <th>Site Name</th>
+                      <th>Sector Utilization (%)</th>
+                      <th>Cell Utilization (%)</th>
+                      <th>Cell DL Average Throughput BH (Mbps)</th>
+                      <th>Cell UL Average Throughput BH (Mbps)</th>
+                      <th>Radio Resource Usage BH (DL) %</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for lte_data in result['LTE Utilization Data'] %}
+                    <tr>
+                      <td>{{ lte_data['Cell ID'] or 'N/A' }}</td>
+                      <td>{{ lte_data['Site ID'] or 'N/A' }}</td>
+                      <td>{{ lte_data['Site Name'] or 'N/A' }}</td>
+                      <td>
+                        {% set sector_util = lte_data['Sector Utilization (%)'] %}
+                        {% if sector_util is not none %}
+                          {% if sector_util > 80 %}
+                            <span class="badge bg-danger">{{ "%.2f"|format(sector_util) }}%</span>
+                          {% elif sector_util > 60 %}
+                            <span class="badge bg-warning">{{ "%.2f"|format(sector_util) }}%</span>
+                          {% else %}
+                            <span class="badge bg-success">{{ "%.2f"|format(sector_util) }}%</span>
+                          {% endif %}
+                        {% else %}
+                          <span class="text-muted">N/A</span>
+                        {% endif %}
+                      </td>
+                      <td>
+                        {% set cell_util = lte_data['Cell Utilization (%)'] %}
+                        {% if cell_util is not none %}
+                          {% if cell_util > 80 %}
+                            <span class="badge bg-danger">{{ "%.2f"|format(cell_util) }}%</span>
+                          {% elif cell_util > 60 %}
+                            <span class="badge bg-warning">{{ "%.2f"|format(cell_util) }}%</span>
+                          {% else %}
+                            <span class="badge bg-success">{{ "%.2f"|format(cell_util) }}%</span>
+                          {% endif %}
+                        {% else %}
+                          <span class="text-muted">N/A</span>
+                        {% endif %}
+                      </td>
+                      <td>{{ "%.2f"|format(lte_data['Cell DL Average thoughput BH (Mbps)']) if lte_data['Cell DL Average thoughput BH (Mbps)'] is not none else 'N/A' }}</td>
+                      <td>{{ "%.2f"|format(lte_data['Cell UL Average thoughput BH (Mbps)']) if lte_data['Cell UL Average thoughput BH (Mbps)'] is not none else 'N/A' }}</td>
+                      <td>{{ "%.2f"|format(lte_data['Radio resource usage BH (DL) %']) if lte_data['Radio resource usage BH (DL) %'] is not none else 'N/A' }}%</td>
+                    </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+              
+              <!-- LTE Utilization from Common Cell Locations -->
+              {% if result['Common Cell Locations'] %}
+              <h6 class="mt-4 mb-3">LTE Utilization from Common Cell Locations</h6>
+              {% for common_cell in result['Common Cell Locations'] %}
+                {% if common_cell['LTE_UTIL_DATA'] and common_cell['LTE_UTIL_DATA']|length > 0 %}
+                <div class="card mb-3">
+                  <div class="card-header">
+                    <h6 class="mb-0">{{ common_cell['SITE_NAME'] }} ({{ common_cell['CELL_CODE'] }})</h6>
+                    <small class="text-muted">District: {{ common_cell['DISTRICT'] }}, Region: {{ common_cell['REGION'] }}</small>
+                  </div>
+                  <div class="card-body">
+                    <div class="table-responsive">
+                      <table class="table table-sm table-striped">
+                        <thead>
+                          <tr>
+                            <th>Cell ID</th>
+                            <th>Sector Utilization (%)</th>
+                            <th>Cell Utilization (%)</th>
+                            <th>Cell DL Average Throughput BH (Mbps)</th>
+                            <th>Cell UL Average Throughput BH (Mbps)</th>
+                            <th>Radio Resource Usage BH (DL) %</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {% for lte_data in common_cell['LTE_UTIL_DATA'] %}
+                          <tr>
+                            <td>{{ lte_data['Cell ID'] or 'N/A' }}</td>
+                            <td>
+                              {% set sector_util = lte_data['Sector Utilization (%)'] %}
+                              {% if sector_util is not none %}
+                                {% if sector_util > 80 %}
+                                  <span class="badge bg-danger bg-opacity-75">{{ "%.1f"|format(sector_util) }}%</span>
+                                {% elif sector_util > 60 %}
+                                  <span class="badge bg-warning bg-opacity-75">{{ "%.1f"|format(sector_util) }}%</span>
+                                {% else %}
+                                  <span class="badge bg-success bg-opacity-75">{{ "%.1f"|format(sector_util) }}%</span>
+                                {% endif %}
+                              {% else %}
+                                N/A
+                              {% endif %}
+                            </td>
+                            <td>
+                              {% set cell_util = lte_data['Cell Utilization (%)'] %}
+                              {% if cell_util is not none %}
+                                {% if cell_util > 80 %}
+                                  <span class="badge bg-danger bg-opacity-75">{{ "%.1f"|format(cell_util) }}%</span>
+                                {% elif cell_util > 60 %}
+                                  <span class="badge bg-warning bg-opacity-75">{{ "%.1f"|format(cell_util) }}%</span>
+                                {% else %}
+                                  <span class="badge bg-success bg-opacity-75">{{ "%.1f"|format(cell_util) }}%</span>
+                                {% endif %}
+                              {% else %}
+                                N/A
+                              {% endif %}
+                            </td>
+                            <td>{{ "%.1f"|format(lte_data['Cell DL Average thoughput BH (Mbps)']) if lte_data['Cell DL Average thoughput BH (Mbps)'] is not none else 'N/A' }} Mbps</td>
+                            <td>{{ "%.1f"|format(lte_data['Cell UL Average thoughput BH (Mbps)']) if lte_data['Cell UL Average thoughput BH (Mbps)'] is not none else 'N/A' }} Mbps</td>
+                            <td>{{ "%.1f"|format(lte_data['Radio resource usage BH (DL) %']) if lte_data['Radio resource usage BH (DL) %'] is not none else 'N/A' }}%</td>
+                          </tr>
+                          {% endfor %}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                </div>
+                {% endif %}
+              {% endfor %}
+              {% endif %}
+              
+              {% else %}
+              <div class="alert alert-info">
+                <i class="bi bi-info-circle me-2"></i>
+                No LTE utilization data available for this MSISDN.
+              </div>
+              {% endif %}
+            </div>
+          </div>
+
+          <!-- Nearest Locations Tab -->
+          <div class="tab-pane fade" id="nearest-locations" role="tabpanel" aria-labelledby="nearest-locations-tab">
+            <div class="card p-4 mt-3">
+              <h5 class="mb-3">Nearest Network Performance Locations</h5>
+              
+              <ul class="nav nav-tabs mb-4" id="nearestLocationTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link active" id="msisdn-location-tab" data-bs-toggle="tab" data-bs-target="#msisdn-location-content" type="button" role="tab">
+                    MSISDN Location
+                  </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                  <button class="nav-link" id="recent-cell-tab" data-bs-toggle="tab" data-bs-target="#recent-cell-content" type="button" role="tab">
+                    Recent Cell Location
+                  </button>
+                </li>
+              </ul>
+              
+              <div class="tab-content" id="nearestLocationTabContent">
+                <!-- MSISDN Location Tab -->
+                <div class="tab-pane fade show active" id="msisdn-location-content" role="tabpanel">
+                  <div class="row mb-4">
+                    <div class="col-md-12">
+                      <div id="nearest-locations-map" class="map-preview mb-3" style="height: 400px;"></div>
+                    </div>
+                  </div>
+                  
+                  <div class="nearest-locations-data mt-4">
+                    <h6 class="mb-3">Network Performance Data Near MSISDN Location</h6>
+                    <div class="table-responsive">
+                      <table class="table table-striped table-hover">
+                        <thead class="table-dark">
+                          <tr>
+                            <th>Distance (km)</th>
+                            <th>Device Model</th>
+                            <th>ISP</th>
+                            <th>Download (kbps)</th>
+                            <th>Upload (kbps)</th>
+                            <th>RSRP (dBm)</th>
+                            <th>Address</th>
+                            <th>Date</th>
+                          </tr>
+                        </thead>
+                        <tbody id="nearest-locations-table">
+                          <!-- Data will be populated via JavaScript -->
+                          <tr>
+                            <td colspan="8" class="text-center">Loading data...</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  
+                  <div class="alert alert-info mt-3">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Showing network performance data within proximity of the MSISDN's last known location.
+                  </div>
+                </div>
+                
+                <!-- Recent Cell Location Tab -->
+                <div class="tab-pane fade" id="recent-cell-content" role="tabpanel">
+                  <div class="row mb-4">
+                    <div class="col-md-12">
+                      <div id="cell-locations-map" class="map-preview mb-3" style="height: 400px;"></div>
+                    </div>
+                  </div>
+                  
+                  <div class="cell-locations-data mt-4">
+                    <h6 class="mb-3">Network Performance Data Near Recent Cell Location</h6>
+                    
+                    <!-- Table Filter controls -->
+                    <div class="mb-3">
+                      <button class="btn btn-sm btn-outline-primary mb-2" id="toggleFullDetails">Show Full Details</button>
+                    </div>
+                    
+                    <div class="table-responsive">
+                      <table class="table table-striped table-hover">
+                        <thead class="table-dark" id="cell-locations-thead">
+                          <tr>
+                            <th>Distance (km)</th>
+                            <th>Device Model</th>
+                            <th>Manufacturer</th>
+                            <th>Chipset</th>
+                            <th>ISP</th>
+                            <th>Download (kbps)</th>
+                            <th>Upload (kbps)</th>
+                            <th>RSRP (dBm)</th>
+                            <th>RSRQ (dB)</th>
+                            <th>RSSNR (dB)</th>
+                            <th>5G Capable</th>
+                            <th>Latitude</th>
+                            <th>Longitude</th>
+                            <th>Address</th>
+                            <th>Region</th>
+                            <th>Sub-region</th>
+                            <th>Server Sponsor</th>
+                            <th>Date</th>
+                          </tr>
+                        </thead>
+                        <tbody id="cell-locations-table">
+                          <!-- Data will be populated via JavaScript -->
+                          <tr>
+                            <td colspan="18" class="text-center">Loading data...</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                  
+                  <div class="alert alert-info mt-3">
+                    <i class="bi bi-info-circle me-2"></i>
+                    Showing network performance data within proximity of the MSISDN's recent cell location.
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Reference Locations Tab -->
+          <div class="tab-pane fade" id="reference-locations" role="tabpanel" aria-labelledby="reference-locations-tab">
+            <div class="card p-4 mt-3">
+              <h5 class="mb-3">📡 Reference Cell Location Data</h5>
+              
+              {% if result["Common_Locations"] and result["Common_Locations"]|length > 0 %}
+              <div class="alert alert-info mb-4">
+                <i class="bi bi-info-circle me-2"></i>
+                Found {{ result["Common_Locations"]|length }} cell locations in the same area as the MSISDN (LAC: {{ result["LAC"] }}, District: {{ result["DISTRICT"] }})
+              </div>
+              
+              <div class="row">
+                {% for loc in result["Common_Locations"] %}
+                <div class="col-md-6 mb-4">
+                  <div class="card border">
+                    <div class="card-header">
+                      <h6 class="mb-0">
+                        <i class="bi bi-broadcast-pin"></i> {{ loc.SITE_NAME }}
+                        <span class="badge bg-secondary ms-2">{{ loc.TYPE }}</span>
+                      </h6>
+                      <small class="text-muted">Cell Code: {{ loc.CELL_CODE }}</small>
+                    </div>
+                    <div class="card-body">
+                      <div class="row">
+                        <div class="col-sm-6">
+                          <p><strong>Location:</strong><br>
+                          {% if loc.LAT and loc.LON and loc.LAT != 'Not Found' and loc.LON != 'Not Found' %}
+                          <span class="text-success">{{ loc.LAT }}, {{ loc.LON }}</span>
+                          {% else %}
+                          <span class="text-muted">Coordinates not available</span>
+                          {% endif %}
+                          </p>
+                          
+                          <p><strong>Area:</strong><br>
+                          {{ loc.DISTRICT }}, {{ loc.REGION }}
+                          {% if loc.PROVINCE and loc.PROVINCE != 'Unknown' %}
+                          <br><small class="text-muted">{{ loc.PROVINCE }} Province</small>
+                          {% endif %}
+                          </p>
+                        </div>
+                        <div class="col-sm-6">
+                          <p><strong>Network Details:</strong><br>
+                          LAC: {{ loc.LAC }}<br>
+                          Cell ID: {{ loc.CELL }}
+                          </p>
+                          
+                          <p><strong>Status:</strong><br>
+                          <span class="badge {% if loc.STATUS == 'S' %}bg-success{% elif loc.STATUS == 'R' %}bg-warning{% else %}bg-secondary{% endif %}">
+                            {% if loc.STATUS == 'S' %}Active{% elif loc.STATUS == 'R' %}Reserved{% else %}{{ loc.STATUS }}{% endif %}
+                          </span>
+                          </p>
+                        </div>
+                      </div>
+                      
+                      {% if loc.ONAIR_DATE and loc.ONAIR_DATE != 'Unknown' %}
+                      <div class="mt-2 pt-2 border-top">
+                        <small class="text-muted">
+                          <i class="bi bi-calendar-event"></i> On-Air: {{ loc.ONAIR_DATE }}
+                        </small>
+                      </div>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
+              
+              <!-- Summary table -->
+              <div class="mt-4">
+                <h6>Location Summary</h6>
+                <div class="table-responsive">
+                  <table class="table table-sm table-striped">
+                    <thead>
+                      <tr>
+                        <th>Site Name</th>
+                        <th>Cell Code</th>
+                        <th>Type</th>
+                        <th>District</th>
+                        <th>Region</th>
+                        <th>Status</th>
+                        <th>Coordinates</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {% for loc in result["Common_Locations"] %}
+                      <tr>
+                        <td>{{ loc.SITE_NAME }}</td>
+                        <td>{{ loc.CELL_CODE }}</td>
+                        <td><span class="badge bg-info">{{ loc.TYPE }}</span></td>
+                        <td>{{ loc.DISTRICT }}</td>
+                        <td>{{ loc.REGION }}</td>
+                        <td>
+                          <span class="badge {% if loc.STATUS == 'S' %}bg-success{% elif loc.STATUS == 'R' %}bg-warning{% else %}bg-secondary{% endif %}">
+                            {% if loc.STATUS == 'S' %}Active{% elif loc.STATUS == 'R' %}Reserved{% else %}{{ loc.STATUS }}{% endif %}
+                          </span>
+                        </td>
+                        <td>
+                          {% if loc.LAT and loc.LON and loc.LAT != 'Not Found' and loc.LON != 'Not Found' %}
+                          <small>{{ loc.LAT }}, {{ loc.LON }}</small>
+                          {% else %}
+                          <small class="text-muted">N/A</small>
+                          {% endif %}
+                        </td>
+                      </tr>
+                      {% endfor %}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+              
+              {% else %}
+              <div class="alert alert-warning">
+                <i class="bi bi-exclamation-triangle me-2"></i>
+                No reference location data found for this MSISDN's area (LAC: {{ result["LAC"] }}, District: {{ result["DISTRICT"] }}).
+                This could indicate the location is not covered in the current reference database.
+              </div>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endif %}
+    </div>
+    
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Chart.js for the graphs -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        // Initialize the tabs
+        document.addEventListener('DOMContentLoaded', function() {
+            // Create tab objects if Bootstrap is loaded
+            if (typeof bootstrap !== 'undefined') {
+                var tabElms = document.querySelectorAll('button[data-bs-toggle="tab"]');
+                tabElms.forEach(function(tabElm) {
+                    new bootstrap.Tab(tabElm);
+                });
+            }
+            
+            // Initialize any chart.js charts if data is available
+            initializeCharts();
+        });
+        
+        // Functions for RSRP filtering
+        let rsrpDebounceTimeout;
+        function debounceRsrpFilter() {
+            clearTimeout(rsrpDebounceTimeout);
+            rsrpDebounceTimeout = setTimeout(filterRsrpTable, 300);
+        }
+        
+        function clearRsrpFilters() {
+            document.querySelectorAll('#rsrpFilterForm input, #rsrpFilterForm select').forEach(input => {
+                input.value = input.tagName === 'SELECT' && input.name === 'sort_order' ? 'asc' : '';
+            });
+            filterRsrpTable();
+        }
+        
+        function filterRsrpTable() {
+            // RSRP filtering logic would go here
+            // This is a placeholder for actual implementation
+            document.getElementById('rsrpStatus').textContent = 'Filter applied';
+        }
+        
+        function initializeCharts() {
+            // Initialize charts with data if available
+            // This would include code to create Chart.js visualizations
+        }
+    </script>
+</body>
+</html>
