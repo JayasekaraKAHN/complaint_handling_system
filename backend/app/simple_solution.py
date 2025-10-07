@@ -410,17 +410,14 @@ def parse_solution_to_template_format(solution_text: str) -> dict:
             "primary_solution": {
                 "title": "Primary Solution",
                 "description": "No solution available",
-                "steps": ["Contact technical support for assistance"]
             },
             "alternate_solution_1": {
                 "title": "",
                 "description": "",
-                "steps": []
             },
             "alternate_solution_2": {
                 "title": "",
                 "description": "",
-                "steps": []
             }
         }
     
@@ -504,32 +501,9 @@ def parse_solution_to_template_format(solution_text: str) -> dict:
             # Clean up description - remove "Solution -" prefix if present
             description = re.sub(r'^Solution\s*[\-:]\s*', '', description).strip()
             
-            # Extract actionable steps
-            steps = []
-            
-            # Look for sentences with action words
-            sentences = [s.strip() for s in description.split('.') if s.strip()]
-            action_words = ['enable', 'activate', 'contact', 'visit', 'check', 'configure', 'restart', 'upgrade', 'repair', 'monitor', 'propose', 'direct', 'send']
-            
-            action_sentences = []
-            for sentence in sentences:
-                if any(word in sentence.lower() for word in action_words):
-                    action_sentences.append(sentence)
-            
-            if action_sentences:
-                steps = action_sentences[:3]  # Max 3 steps
-            else:
-                # If no action sentences, use first 2 sentences
-                steps = sentences[:2] if len(sentences) >= 2 else [description[:100] + "..." if len(description) > 100 else description]
-            
-            # Ensure we have at least one step
-            if not steps:
-                steps = [description[:100] + "..." if len(description) > 100 else description]
-            
             result[solution_keys[i]] = {
                 "title": title,
-                "description": description,
-                "steps": steps
+                "description": description
             }
     
     # Fill in any missing solutions with empty objects
@@ -537,25 +511,21 @@ def parse_solution_to_template_format(solution_text: str) -> dict:
         if key not in result or not result[key]:
             result[key] = {
                 "title": "",
-                "description": "",
-                "steps": []
+                "description": ""
             }
     
     return result
-    
-    return result
-    
-    return result
 
-def generate_solution(msisdn: str, complaint_text: str, **kwargs) -> dict:
+def generate_solution(msisdn: str | None, complaint_text: str, **kwargs) -> dict:
     """
     Simplified interface for generating solutions without specific location names
     Returns structured solution data for the template
+    MSISDN is now optional - can be None
     """
     handler = get_complaint_handler()
     
     complaint_details = {
-        'msisdn': msisdn,
+        'msisdn': msisdn,  # Can be None now
         'complaint': complaint_text,
         'device_type_settings_vpn_apn': kwargs.get('device_type_settings_vpn_apn'),
         'signal_strength': kwargs.get('signal_strength'),

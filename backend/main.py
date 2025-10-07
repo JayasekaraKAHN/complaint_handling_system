@@ -41,7 +41,7 @@ sys.path.append(os.path.join(backend_dir, "app"))
 
 # ----------------- Request Model -----------------
 class ComplaintRequest(BaseModel):
-    msisdn: str
+    msisdn: str | None = None
     complaint: str
     device_type_settings_vpn_apn: str | None = None
     signal_strength: str | None = None

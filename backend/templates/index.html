@@ -21,9 +21,9 @@
         <form id="complaintForm" method="post" action="/get_solution">
             <!-- Required Fields -->
             <div class="form-group">
-                <label for="msisdn">MSISDN <span class="required">*</span></label>
-                <input type="text" id="msisdn" name="msisdn" required placeholder="Enter customer mobile number">
-                <div class="field-description">Customer's mobile number</div>
+                <label for="msisdn">MSISDN</label>
+                <input type="text" id="msisdn" name="msisdn" placeholder="Enter customer mobile number">
+                <div class="field-description">Customer's mobile number (optional)</div>
             </div>
 
             <div class="form-group">
@@ -158,8 +158,8 @@
 
             <div class="pro-tips">
                 <strong>💡 Tips:</strong><br>
-                • Required fields: MSISDN and Issue Description<br>
-                • Fill only relevant optional fields for better matching<br>
+                • Required field: Issue Description<br>
+                • MSISDN and other fields are optional for better matching<br>
                 • System analyzes only provided information<br>
                 • More details = better solution accuracy
             </div>
@@ -180,7 +180,7 @@
 
             // Get form values
             const formData = {
-                msisdn: document.getElementById('msisdn').value,
+                msisdn: document.getElementById('msisdn').value || null,
                 complaint: document.getElementById('complaint').value,
                 device_type_settings_vpn_apn: document.getElementById('device_type_settings_vpn_apn').value || null,
                 signal_strength: document.getElementById('signal_strength').value || null,
