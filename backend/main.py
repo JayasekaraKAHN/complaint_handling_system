@@ -15,6 +15,7 @@ sys.path.insert(0, backend_dir)
 
 from app.location import location_router
 from app.simple_solution import generate_solution  # Use simplified solution generator
+from app.location_finder import get_location_info_for_complaint
 
 # Import MSISDN dashboard data and functions
 from app.msisdn_dashboard import get_msisdn_data, tac_df, vlrd_df, ref_location_df
@@ -139,6 +140,15 @@ async def get_solution(req: ComplaintRequest):
     Receives complaint input from frontend, generates personalized solution.
     """
     try:
+        # Get location information if coordinates are provided
+        location_info = None
+        if req.latitude and req.longitude:
+            try:
+                location_info = get_location_info_for_complaint(req.latitude, req.longitude)
+            except Exception as loc_error:
+                print(f"Location lookup error: {loc_error}")
+                location_info = {"error": f"Location lookup failed: {str(loc_error)}"}
+        
         # Call simplified solution generation - now returns structured data
         solution_data = generate_solution(
             msisdn=req.msisdn,
@@ -154,11 +164,17 @@ async def get_solution(req: ComplaintRequest):
             latitude=req.latitude,
         )
 
-        return JSONResponse({
+        response_data = {
             "solutions": solution_data["solutions"],
             "solution_type": solution_data["solution_type"],
             "status": "success"
-        })
+        }
+        
+        # Add location information if available
+        if location_info:
+            response_data["location_info"] = location_info
+
+        return JSONResponse(response_data)
     
     except Exception as e:
         # Return error details for debugging

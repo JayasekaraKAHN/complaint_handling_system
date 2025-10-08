@@ -687,7 +687,149 @@
                     <div class="detail-label">Location Type</div>
                     <div class="detail-value">${complaint.indoor_outdoor_coverage_issue || complaint.location || 'General area'}</div>
                 </div>
+                <div class="detail-card">
+                    <div class="detail-label">Coordinates</div>
+                    <div class="detail-value">${complaint.latitude && complaint.longitude ? `${complaint.latitude}, ${complaint.longitude}` : 'Not provided'}</div>
+                </div>
             `;
+            
+            // Display location information if available
+            displayLocationInfo();
+        }
+
+        function displayLocationInfo() {
+            // Check if location data exists in the loaded data
+            const data = loadSolutionsFromData();
+            console.log('Full data received:', data);
+            
+            if (!data || !data.location_info) {
+                console.log('No location_info found in data');
+                return;
+            }
+            
+            const locationInfo = data.location_info;
+            console.log('Location info:', locationInfo);
+            
+            // Create location information section after complaint details
+            const complaintCard = document.getElementById('complaintCard');
+            let locationCard = document.getElementById('locationCard');
+            
+            if (!locationCard) {
+                locationCard = document.createElement('div');
+                locationCard.id = 'locationCard';
+                locationCard.className = 'complaint-card';
+                complaintCard.parentNode.insertBefore(locationCard, complaintCard.nextSibling);
+            }
+            
+            if (locationInfo.error) {
+                console.log('Location error:', locationInfo.error);
+                locationCard.innerHTML = `
+                    <div class="complaint-header">
+                        <div class="complaint-icon">📍</div>
+                        <div class="complaint-title">
+                            <h2>Location Analysis</h2>
+                            <p>Unable to analyze location data</p>
+                        </div>
+                    </div>
+                    <div class="complaint-details-grid">
+                        <div class="detail-card">
+                            <div class="detail-label">Error</div>
+                            <div class="detail-value">${locationInfo.error}</div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            const nearest = locationInfo.nearest_site;
+            const sitesCount = locationInfo.total_nearby_sites || 0;
+            const coverageQuality = locationInfo.location_analysis?.coverage_quality || 'Unknown';
+            
+            console.log('Nearest site:', nearest);
+            console.log('Sites count:', sitesCount);
+            console.log('Coverage quality:', coverageQuality);
+            
+            let locationHTML = `
+                <div class="complaint-header">
+                    <div class="complaint-icon">📍</div>
+                    <div class="complaint-title">
+                        <h2>Nearby Cell Sites</h2>
+                        <p>${sitesCount} sites found within 2km radius</p>
+                    </div>
+                    <div class="status-badge" style="background: ${coverageQuality === 'Good' ? '#d4edda' : coverageQuality === 'Limited' ? '#fff3cd' : '#f8d7da'}; color: ${coverageQuality === 'Good' ? '#155724' : coverageQuality === 'Limited' ? '#856404' : '#721c24'};">
+                        ${coverageQuality} Coverage
+                    </div>
+                </div>
+                <div class="complaint-details-grid">
+            `;
+            
+            if (nearest) {
+                locationHTML += `
+                    <div class="detail-card">
+                        <div class="detail-label">Nearest Site</div>
+                        <div class="detail-value">${nearest.site_name} (${nearest.distance_km}km)</div>
+                    </div>
+                    <div class="detail-card">
+                        <div class="detail-label">Cell Code</div>
+                        <div class="detail-value">${nearest.cell_code}</div>
+                    </div>
+                    <div class="detail-card">
+                        <div class="detail-label">Technology</div>
+                        <div class="detail-value">${nearest.technology}</div>
+                    </div>
+                    <div class="detail-card">
+                        <div class="detail-label">Location</div>
+                        <div class="detail-value">${nearest.district}, ${nearest.province}</div>
+                    </div>
+                    <div class="detail-card">
+                        <div class="detail-label">Site Status</div>
+                        <div class="detail-value">${nearest.status === 'S' ? 'Active' : nearest.status}</div>
+                    </div>
+                    <div class="detail-card">
+                        <div class="detail-label">Site Coordinates</div>
+                        <div class="detail-value">${nearest.latitude}, ${nearest.longitude}</div>
+                    </div>
+                `;
+                
+                // Show additional nearby sites if available
+                if (locationInfo.sites_within_2km && locationInfo.sites_within_2km.length > 1) {
+                    locationHTML += `
+                        <div class="detail-card" style="grid-column: 1 / -1;">
+                            <div class="detail-label">Additional Sites Within 2km</div>
+                            <div class="detail-value">
+                                <div style="max-height: 150px; overflow-y: auto;">
+                    `;
+                    
+                    locationInfo.sites_within_2km.slice(1, 5).forEach(site => {
+                        locationHTML += `
+                            <div style="margin: 5px 0; padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 0.9em;">
+                                <strong>${site.site_name}</strong> (${site.cell_code}) - ${site.distance_km}km
+                                <br><small>${site.technology} | ${site.district}</small>
+                            </div>
+                        `;
+                    });
+                    
+                    if (locationInfo.sites_within_2km.length > 5) {
+                        locationHTML += `<small>... and ${locationInfo.sites_within_2km.length - 5} more sites</small>`;
+                    }
+                    
+                    locationHTML += `
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }
+            } else {
+                locationHTML += `
+                    <div class="detail-card">
+                        <div class="detail-label">Coverage Status</div>
+                        <div class="detail-value">No nearby cell sites found within 2km</div>
+                    </div>
+                `;
+            }
+            
+            locationHTML += `</div>`;
+            locationCard.innerHTML = locationHTML;
         }
 
         function createSolutionCard(solution, type, solutionId, container) {

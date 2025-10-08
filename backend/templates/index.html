@@ -203,46 +203,6 @@
 
                 <div id="solution" class="solution"></div>
 
-                <!-- Location Data Table -->
-                <div>
-                    <h3>Location Data</h3>
-                    <table id="locationTable">
-                        <thead>
-                            <tr>
-                                <th>Site Name</th>
-                                <th>RSRP Range 1 (> -105dBm)</th>
-                                <th>RSRP Range 2 (-105 to -110dBm)</th>
-                                <th>RSRP Range 3 (-110 to -115dBm)</th>
-                                <th>RSRP Below -115dBm</th>
-                                <th>Distance (km)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <!-- Data will be populated here via JavaScript -->
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="info-box">
-                    <h4>🤖 Smart Complaint Resolution Logic</h4>
-
-                    <ul>
-                        <li><strong>Exact Match:</strong> Same complaint + same conditions → Returns exact solution from dataset
-                            (max 5 sentences)</li>
-                        <li><strong>Pattern Analysis:</strong> Similar complaint + different conditions → Analyzes historical
-                            patterns</li>
-                        <li><strong>New Complaint:</strong> Completely new issue → Uses Ollama Llama 3.2 1B LLM with full
-                            context</li>
-                    </ul>
-
-                    <div class="pro-tips">
-                        <strong>💡 Tips:</strong><br>
-                        • Required field: Issue Description<br>
-                        • MSISDN and other fields are optional for better matching<br>
-                        • System analyzes only provided information<br>
-                        • More details = better solution accuracy
-                    </div>
-                </div>
             </div>
 
             <!-- Right Compartment: MSISDN Details -->
@@ -805,7 +765,8 @@
                     const solutionData = {
                         solutions: data.solutions,
                         solution_type: data.solution_type,
-                        complaint: formData
+                        complaint: formData,
+                        location_info: data.location_info || null
                     };
                     
                     // Store in localStorage for the solution template to access
