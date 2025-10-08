@@ -70,17 +70,48 @@ async def dashboard_route(request: Request):
 @app.get("/api/msisdn_dashboard")
 async def api_msisdn_dashboard_route(msisdn: str = ""):
     try:
+        print(f"API called with MSISDN: {msisdn}")  # Debug logging
         # If MSISDN is provided, get data for that MSISDN
         if msisdn:
             result = get_msisdn_data(msisdn)
+            print(f"get_msisdn_data returned: {type(result)}")  # Debug logging
             if isinstance(result, dict) and "error" in result:
+                print(f"Error in result: {result['error']}")  # Debug logging
                 return JSONResponse({"error": result["error"]}, status_code=404)
+            print(f"Returning result with Usage_Data: {'Usage_Data' in result if isinstance(result, dict) else 'Not a dict'}")  # Debug logging
+            # Convert any numpy types to native Python types for JSON serialization
+            import numpy as np
+            import math
+            def convert_types(obj):
+                if isinstance(obj, dict):
+                    return {k: convert_types(v) for k, v in obj.items()}
+                elif isinstance(obj, list):
+                    return [convert_types(v) for v in obj]
+                elif isinstance(obj, np.integer):
+                    return int(obj)
+                elif isinstance(obj, np.floating):
+                    val = float(obj)
+                    # Handle NaN and infinite values
+                    if math.isnan(val) or math.isinf(val):
+                        return None
+                    return val
+                elif isinstance(obj, float):
+                    # Handle regular Python float NaN/inf values
+                    if math.isnan(obj) or math.isinf(obj):
+                        return None
+                    return obj
+                else:
+                    return obj
+
+            result_serializable = convert_types(result)
+            return JSONResponse({"result": result_serializable})
         
         # Return empty response for now - can be enhanced later
         return JSONResponse({"table": [], "dash_url": "/dashboard/usage-graph/"})
     except Exception as e:
         import traceback
         error_trace = traceback.format_exc()
+        print(f"Exception in API: {str(e)}\n{error_trace}")  # Debug logging
         return JSONResponse({"error": f"Internal server error: {str(e)}"}, status_code=500)
 
 @app.get("/msisdn_details", response_class=HTMLResponse)
