@@ -518,6 +518,9 @@
                     if (data.result && data.result.Common_Locations) {
                         displayLocationData(data.result.Common_Locations);
                     }
+                    if (data.result && data.result.VoLTE_Info) {
+                        displayVoLTEInfo(data.result.VoLTE_Info);
+                    }
                 }
             } catch (error) {
                 console.error('Error fetching location data:', error);
@@ -582,6 +585,52 @@
                 // Append to existing content
                 detailsContent.innerHTML += locationHTML;
             }
+        }
+
+        // Function to display VoLTE provisioning information
+        function displayVoLTEInfo(volteInfo) {
+            const detailsContent = document.getElementById('msisdnDetailsContent');
+            
+            let volteHTML = `<div class="mb-4">`;
+            volteHTML += `<h6>📞 VoLTE Provisioning Status</h6>`;
+            volteHTML += `<div class="card">`;
+            volteHTML += `<div class="card-body p-2">`;
+            volteHTML += `<div class="table-responsive">`;
+            volteHTML += `<table class="table table-sm table-borderless mb-0">`;
+            
+            if (volteInfo.volte_provisioned === true) {
+                volteHTML += `<tr><td style="width: 45%;"><small><strong>VoLTE Status:</strong></small></td><td><small><span class="badge bg-success">✅ Provisioned</span></small></td></tr>`;
+                
+                if (volteInfo.cell_code && volteInfo.cell_code !== 'Unknown') {
+                    volteHTML += `<tr><td><small><strong>VoLTE Cell Code:</strong></small></td><td><small>${volteInfo.cell_code}</small></td></tr>`;
+                }
+                if (volteInfo.district && volteInfo.district !== 'Unknown') {
+                    volteHTML += `<tr><td><small><strong>VoLTE District:</strong></small></td><td><small>${volteInfo.district}</small></td></tr>`;
+                }
+                if (volteInfo.prepos && volteInfo.prepos !== 'Unknown') {
+                    volteHTML += `<tr><td><small><strong>VoLTE PrePos:</strong></small></td><td><small>${volteInfo.prepos}</small></td></tr>`;
+                }
+                if (volteInfo.sim_type && volteInfo.sim_type !== 'Unknown') {
+                    volteHTML += `<tr><td><small><strong>VoLTE SIM Type:</strong></small></td><td><small>${volteInfo.sim_type}</small></td></tr>`;
+                }
+                if (volteInfo.tac && volteInfo.tac !== 'Unknown') {
+                    volteHTML += `<tr><td><small><strong>VoLTE TAC:</strong></small></td><td><small>${volteInfo.tac}</small></td></tr>`;
+                }
+            } else {
+                volteHTML += `<tr><td style="width: 45%;"><small><strong>VoLTE Status:</strong></small></td><td><small><span class="badge bg-danger">❌ Not Provisioned</span></small></td></tr>`;
+                
+                if (volteInfo.message) {
+                    volteHTML += `<tr><td><small><strong>Note:</strong></small></td><td><small>${volteInfo.message}</small></td></tr>`;
+                }
+                if (volteInfo.error) {
+                    volteHTML += `<tr><td><small><strong>Error:</strong></small></td><td><small class="text-muted">${volteInfo.error}</small></td></tr>`;
+                }
+            }
+            
+            volteHTML += `</table></div></div></div></div>`;
+            
+            // Append to existing content
+            detailsContent.innerHTML += volteHTML;
         }
 
         // Function to fetch usage data for MSISDN

@@ -5,6 +5,7 @@ from fastapi.templating import Jinja2Templates
 import pandas as pd
 import math
 from typing import Optional
+from .volte_checker import check_msisdn_volte_provisioning
 
 app = FastAPI()
 
@@ -368,6 +369,9 @@ def get_msisdn_data(msisdn):
         # Get usage data for the MSISDN
         usage_data = get_usage_data(msisdn)
         
+        # Check VoLTE provisioning for the MSISDN
+        volte_info = check_msisdn_volte_provisioning(msisdn)
+        
         # Prepare result
         result = {
             "MSISDN": msisdn,
@@ -381,6 +385,7 @@ def get_msisdn_data(msisdn):
             "SIMUSIM": vlrd_row.get('SIMUSIM', 'Unknown'),
             "Common_Locations": common_locations,
             "Usage_Data": usage_data,
+            "VoLTE_Info": volte_info,
             **device_info
         }
         
