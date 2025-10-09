@@ -60,38 +60,83 @@
             box-shadow: 0 2px 10px rgba(0,0,0,0.1);
             margin-bottom: 20px;
         }
+
+        /* Solution overlay styles */
+        #solutionOverlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #solutionOverlay .overlay-content {
+            position: relative;
+            width: 90vw;
+            height: 90vh;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+        }
+
+        #solutionOverlay button.close-overlay {
+            position: absolute;
+            top: 18px;
+            right: 24px;
+            z-index: 10000;
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 18px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        #solutionOverlay iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
     </style>
 </head>
 
 <body>
     <div class="container-fluid">
         <!-- Navigation Header -->
-        <div class="header-nav">
+        <!-- <div class="header-nav">
             <nav class="main-nav">
                 <a href="/" class="nav-link active">🏠 Home</a>
                 <a href="/dashboard" class="nav-link">📊 MSISDN Dashboard</a>
                 <a href="/msisdn_details" class="nav-link">📱 MSISDN Details</a>
             </nav>
-        </div>
+        </div> -->
 
         <!-- Three-compartment layout -->
         <div class="main-layout">
             
-            <!-- Left Compartment: MSISDN Search -->
+            <!-- Left Compartment: Information -->
             <div class="left-compartment">
-                <h4>📱 MSISDN Lookup</h4>
-                <form id="msisdnSearchForm">
-                    <div class="form-group mb-3">
-                        <label for="search_msisdn" class="form-label">MSISDN:</label>
-                        <input type="text" id="search_msisdn" name="search_msisdn" 
-                               class="form-control"
-                               placeholder="e.g., 94771234567" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">🔍 Search Details</button>
-                </form>
-                
-                <!-- Search Status -->
-                <div id="searchStatus" class="mt-3"></div>
+                <h4>� Instructions</h4>
+                <div class="alert alert-info">
+                    <h6>📱 MSISDN Lookup</h6>
+                    <p>Enter an MSISDN in the complaint form and click "Get Solution" to automatically fetch both solution and subscriber details.</p>
+                </div>
+                <div class="alert alert-primary">
+                    <h6>🔧 Solution Generation</h6>
+                    <p>Fill out the complaint form with issue details. Location and technical information help generate more accurate solutions.</p>
+                </div>
+                <div class="alert alert-success">
+                    <h6>📊 Results Display</h6>
+                    <p>Solutions and MSISDN details will be shown in an overlay window with interactive options.</p>
+                </div>
             </div>
 
             <!-- Middle Compartment: Original Complaint Form -->
@@ -104,7 +149,7 @@
                     <div class="form-group">
                         <label for="msisdn">MSISDN</label>
                         <input type="text" id="msisdn" name="msisdn" placeholder="Enter customer mobile number">
-                        <div class="field-description">Customer's mobile number (optional)</div>
+                        <div class="field-description">Customer's mobile number (optional) - Subscriber details will be fetched automatically</div>
                     </div>
 
                     <div class="form-group">
@@ -192,7 +237,7 @@
                         <div class="field-description">Precise latitude coordinate (if available)</div>
                     </div>
 
-                    <button type="submit" id="submitBtn" class="submit-btn">🔍 Get Solution</button>
+                    <button type="submit" id="submitBtn" class="submit-btn" onclick="event.preventDefault(); handleGetSolution();">🔍 Get Solution & MSISDN Details</button>
                 </form>
 
                 <div id="solution" class="solution"></div>
@@ -203,7 +248,13 @@
             <div class="right-compartment">
                 <h4 id="msisdnDetailsHeader">📱 MSISDN Details</h4>
                 <div id="msisdnDetailsContent">
-                    <p class="text-muted">Search for an MSISDN on the left to view details here.</p>
+                    <div class="alert alert-info">
+                        <h6>🔍 How to View MSISDN Details</h6>
+                        <p>1. Enter an MSISDN in the complaint form</p>
+                        <p>2. Fill out the complaint details</p>
+                        <p>3. Click "Get Solution" button</p>
+                        <p>4. MSISDN details will appear in the solution overlay along with the solution</p>
+                    </div>
                 </div>
                 
                 <!-- Usage Graphs Container -->
@@ -243,6 +294,14 @@
                 </div>
             </div>
 
+        </div>
+    </div>
+
+    <!-- Solution Overlay Modal -->
+    <div id="solutionOverlay">
+        <div class="overlay-content">
+            <button class="close-overlay" onclick="closeSolutionOverlay()">✖ Close</button>
+            <iframe id="solutionOverlayFrame" src="/solution_template"></iframe>
         </div>
     </div>
 
@@ -615,113 +674,95 @@
             }
         }
 
-        // MSISDN Search functionality
-        document.getElementById('msisdnSearchForm').addEventListener('submit', async function (e) {
-            e.preventDefault();
-            
-            const msisdn = document.getElementById('search_msisdn').value;
-            const statusDiv = document.getElementById('searchStatus');
+        // Function to fetch and display MSISDN details in the right compartment
+        async function fetchAndDisplayMSISDNDetails(msisdn) {
             const detailsContent = document.getElementById('msisdnDetailsContent');
             const detailsHeader = document.getElementById('msisdnDetailsHeader');
             
-            if (!msisdn) {
-                statusDiv.innerHTML = '<div class="alert alert-warning">Please enter an MSISDN</div>';
-                return;
-            }
-            
             // Show loading state
-            statusDiv.innerHTML = '<div class="alert alert-info">🔍 Searching...</div>';
-            detailsContent.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></div>';
+            detailsContent.innerHTML = '<div class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div><p class="mt-2">Loading MSISDN details...</p></div>';
+            detailsHeader.textContent = `📱 Loading: ${msisdn}`;
             
             try {
-                const response = await fetch(`/msisdn_details?msisdn=${encodeURIComponent(msisdn)}`);
+                const response = await fetch(`/api/msisdn_dashboard?msisdn=${encodeURIComponent(msisdn)}`);
                 
                 if (response.ok) {
-                    const html = await response.text();
+                    const data = await response.json();
+                    console.log('MSISDN API Response:', data);
                     
-                    // Parse the response HTML to extract the result data
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    
-                    // Check if there's an error
-                    const errorDiv = doc.querySelector('.alert-danger');
-                    if (errorDiv) {
-                        statusDiv.innerHTML = `<div class="alert alert-danger">${errorDiv.textContent}</div>`;
-                        detailsContent.innerHTML = '<p class="text-muted">No details found for this MSISDN.</p>';
-                        detailsHeader.textContent = '📱 MSISDN Details';
-                        return;
-                    }
-                    
-                    // Extract subscriber information table
-                    const subscriberSection = doc.querySelector('.data-card');
-                    if (subscriberSection) {
-                        statusDiv.innerHTML = '<div class="alert alert-success">✅ Details found!</div>';
+                    if (data.result) {
                         detailsHeader.textContent = `📱 Details: ${msisdn}`;
                         
-                        // Create condensed view for the right compartment
-                        const tables = doc.querySelectorAll('.data-card');
+                        // Create subscriber details HTML
                         let detailsHTML = '';
                         
-                        tables.forEach(section => {
-                            const heading = section.querySelector('h3');
-                            const tableRows = section.querySelectorAll('tr');
+                        // Basic subscriber information
+                        if (data.result.subscriber_info) {
+                            const subscriber = data.result.subscriber_info;
+                            detailsHTML += `<div class="mb-4">`;
+                            detailsHTML += `<h6>👤 Subscriber Information</h6>`;
+                            detailsHTML += `<div class="table-responsive">`;
+                            detailsHTML += `<table class="table table-sm table-borderless">`;
                             
-                            if (heading && tableRows.length > 0) {
-                                detailsHTML += `<div class="mb-4">`;
-                                detailsHTML += `<h6>${heading.textContent}</h6>`;
-                                detailsHTML += `<div class="table-responsive">`;
-                                detailsHTML += `<table class="table table-sm table-borderless">`;
-                                
-                                tableRows.forEach(row => {
-                                    const cells = row.querySelectorAll('td');
-                                    if (cells.length === 2) {
-                                        detailsHTML += `<tr><td style="width: 40%;"><small><strong>${cells[0].textContent}</strong></small></td><td><small>${cells[1].textContent}</small></td></tr>`;
-                                    }
-                                });
-                                
-                                detailsHTML += `</table></div></div>`;
-                            }
-                        });
+                            Object.entries(subscriber).forEach(([key, value]) => {
+                                if (value && value !== 'Unknown') {
+                                    const displayKey = key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+                                    detailsHTML += `<tr><td style="width: 40%;"><small><strong>${displayKey}:</strong></small></td><td><small>${value}</small></td></tr>`;
+                                }
+                            });
+                            
+                            detailsHTML += `</table></div></div>`;
+                        }
                         
-                        // Fetch and display location data via API instead of parsing HTML
-                        fetchLocationData(msisdn);
+                        detailsContent.innerHTML = detailsHTML || '<p class="text-muted">Basic details loaded.</p>';
                         
-                        detailsContent.innerHTML = detailsHTML || '<p class="text-muted">Details found but could not parse content.</p>';
+                        // Fetch and display location data
+                        if (data.result.Common_Locations) {
+                            displayLocationData(data.result.Common_Locations);
+                        }
                         
-                        // Also populate the complaint form MSISDN field
-                        document.getElementById('msisdn').value = msisdn;
+                        // Fetch and display VoLTE info
+                        if (data.result.VoLTE_Info) {
+                            displayVoLTEInfo(data.result.VoLTE_Info);
+                        }
                         
-                        // Get usage data via direct API call
-                        fetchUsageData(msisdn);
+                        // Fetch and display usage data
+                        if (data.result.Usage_Data) {
+                            displayUsageGraphs(data.result.Usage_Data);
+                        }
                         
                     } else {
-                        statusDiv.innerHTML = '<div class="alert alert-warning">No details found for this MSISDN</div>';
-                        detailsContent.innerHTML = '<p class="text-muted">No details available.</p>';
                         detailsHeader.textContent = '📱 MSISDN Details';
+                        detailsContent.innerHTML = '<div class="alert alert-warning">No details found for this MSISDN</div>';
                     }
                 } else {
                     throw new Error(`HTTP ${response.status}`);
                 }
                 
             } catch (error) {
-                statusDiv.innerHTML = '<div class="alert alert-danger">❌ Error searching MSISDN</div>';
-                detailsContent.innerHTML = '<p class="text-muted">Error loading details.</p>';
+                console.error('Error fetching MSISDN details:', error);
                 detailsHeader.textContent = '📱 MSISDN Details';
-                console.error('MSISDN search error:', error);
+                detailsContent.innerHTML = '<div class="alert alert-danger">❌ Error loading MSISDN details</div>';
             }
-        });
+        }
 
         // Form submission with enhanced UX
         document.getElementById('complaintForm').addEventListener('submit', async function (e) {
             e.preventDefault();
+            // Use the handleGetSolution function for unified processing
+            await handleGetSolution();
+        });
 
-            const submitBtn = document.getElementById('submitBtn');
-            const originalText = submitBtn.innerHTML;
-            const lat = document.getElementById('latitude').value;
-            const lon = document.getElementById('longitude').value;
-            submitBtn.innerHTML = '🔄 Analyzing...';
-            submitBtn.disabled = true;
+        // Solution overlay functions
+        function openSolutionOverlay() {
+            document.getElementById('solutionOverlay').style.display = 'flex';
+        }
 
+        function closeSolutionOverlay() {
+            document.getElementById('solutionOverlay').style.display = 'none';
+        }
+
+        async function handleGetSolution() {
             // Get form values
             const formData = {
                 msisdn: document.getElementById('msisdn').value || null,
@@ -737,87 +778,80 @@
                 latitude: document.getElementById('latitude').value ? parseFloat(document.getElementById('latitude').value) : null
             };
 
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.innerHTML;
             const solutionDiv = document.getElementById('solution');
-            solutionDiv.className = 'solution';
-            solutionDiv.innerHTML = '';
+            
+            submitBtn.innerHTML = '🔄 Analyzing...';
+            submitBtn.disabled = true;
+            
+            // Show loading state in solution div
+            solutionDiv.innerHTML = '<div class="loading">🤖 Analyzing complaint and generating solution...</div>';
+            solutionDiv.className = 'solution show';
 
             try {
-                // Show loading state
-                solutionDiv.innerHTML = '<div class="loading">🤖 Analyzing complaint and generating solution...</div>';
-                solutionDiv.className = 'solution show';
-
-                const response = await fetch('/api/solution', {
+                // Fetch solution data
+                const solutionResponse = await fetch('/api/solution', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(formData)
                 });
+                const solutionData = await solutionResponse.json();
 
-                const data = await response.json();
+                if (solutionData.solutions) {
+                    // If MSISDN is provided, fetch and display MSISDN details in the right compartment
+                    if (formData.msisdn) {
+                        await fetchAndDisplayMSISDNDetails(formData.msisdn);
+                    }
 
-                if (data.solutions) {
-                    // Store solution data and redirect to solution template
-                    const solutionData = {
-                        solutions: data.solutions,
-                        solution_type: data.solution_type,
+                    // Prepare solution data for overlay
+                    const overlayData = {
+                        solutions: solutionData.solutions,
                         complaint: formData,
-                        location_info: data.location_info || null
+                        location_info: solutionData.location_info || null
                     };
+
+                    // If MSISDN data was fetched, include it in overlay data
+                    if (formData.msisdn) {
+                        try {
+                            const msisdnResponse = await fetch(`/api/msisdn_dashboard?msisdn=${encodeURIComponent(formData.msisdn)}`);
+                            if (msisdnResponse.ok) {
+                                const msisdnData = await msisdnResponse.json();
+                                overlayData.msisdn_info = {
+                                    msisdn: formData.msisdn,
+                                    subscriber_data: msisdnData.result || null,
+                                    common_locations: msisdnData.result?.Common_Locations || null,
+                                    volte_info: msisdnData.result?.VoLTE_Info || null,
+                                    usage_data: msisdnData.result?.Usage_Data || null
+                                };
+                            }
+                        } catch (msisdnError) {
+                            console.warn('Could not fetch MSISDN data for overlay:', msisdnError);
+                        }
+                    }
+
+                    localStorage.setItem('solutionData', JSON.stringify(overlayData));
                     
-                    // Store in localStorage for the solution template to access
-                    localStorage.setItem('solutionData', JSON.stringify(solutionData));
-                    
-                    // Redirect to solution template
-                    window.location.href = '/solution_template';
-                    
-                } else if (data.error) {
-                    solutionDiv.innerHTML = `<strong>❌ Error:</strong> ${data.error}`;
+                    // Clear the solution div and open overlay
+                    solutionDiv.innerHTML = '';
+                    solutionDiv.className = 'solution';
+                    openSolutionOverlay();
+                } else if (solutionData.error) {
+                    solutionDiv.innerHTML = `<strong>❌ Error:</strong> ${solutionData.error}`;
                     solutionDiv.className = 'solution show';
                 } else {
                     solutionDiv.innerHTML = `<strong>⚠️ No solution found.</strong>`;
                     solutionDiv.className = 'solution show';
                 }
-
             } catch (err) {
                 solutionDiv.innerHTML = '<strong>❌ Network Error:</strong> Unable to connect to the server. Please check if the system is running.';
                 solutionDiv.className = 'solution show';
+                console.error('Error in handleGetSolution:', err);
             } finally {
-                // Reset button
                 submitBtn.innerHTML = originalText;
                 submitBtn.disabled = false;
             }
-
-
-
-
-            fetch(`/location/location_data?lat=${lat}&lon=${lon}`)
-                .then(response => response.json())
-                .then(data => {
-                    const locationTableBody = document.querySelector('#locationTable tbody');
-                    locationTableBody.innerHTML = '';
-                    // Only show the unique nearest site by site_name
-                    if (data.nearest_site && data.nearest_site.site_name) {
-                        const nearest = data.nearest_site;
-                        const row = document.createElement('tr');
-                        row.innerHTML = `
-                            <td><b>${nearest.site_name} (Nearest)</b></td>
-                            <td>${nearest.rsrp_range_1}</td>
-                            <td>${nearest.rsrp_range_2}</td>
-                            <td>${nearest.rsrp_range_3}</td>
-                            <td>${nearest.rsrp_below_115}</td>
-                            <td>${(nearest.distance_km / 1000).toFixed(2)} km</td>
-                        `;
-                        locationTableBody.appendChild(row);
-                    } else {
-                        const row = document.createElement('tr');
-                        row.innerHTML = `<td colspan="6">No nearby site found.</td>`;
-                        locationTableBody.appendChild(row);
-                    }
-                })
-                .catch(error => console.error('Error fetching nearest site data:', error));
-
-
-
-        });
+        }
     </script>
 
     <!-- Bootstrap Bundle with Popper -->

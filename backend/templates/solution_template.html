@@ -670,7 +670,20 @@
 
         function populateComplaintDetails(complaint) {
             const detailsContainer = document.getElementById('complaintDetails');
-            detailsContainer.innerHTML = `
+            let detailsHTML = '';
+            
+            // Add MSISDN information if available
+            const data = loadSolutionsFromData();
+            if (data && data.msisdn_info && data.msisdn_info.msisdn) {
+                detailsHTML += `
+                    <div class="detail-card">
+                        <div class="detail-label">MSISDN</div>
+                        <div class="detail-value">${data.msisdn_info.msisdn}</div>
+                    </div>
+                `;
+            }
+            
+            detailsHTML += `
                 <div class="detail-card">
                     <div class="detail-label">Main Issue</div>
                     <div class="detail-value">${complaint.complaint || 'Network connectivity issue'}</div>
@@ -692,6 +705,11 @@
                     <div class="detail-value">${complaint.latitude && complaint.longitude ? `${complaint.latitude}, ${complaint.longitude}` : 'Not provided'}</div>
                 </div>
             `;
+            
+            detailsContainer.innerHTML = detailsHTML;
+            
+            // Display MSISDN information if available
+            displayMSISDNInfo();
             
             // Display location information if available
             displayLocationInfo();
@@ -830,6 +848,114 @@
             
             locationHTML += `</div>`;
             locationCard.innerHTML = locationHTML;
+        }
+
+        function displayMSISDNInfo() {
+            // Check if MSISDN data exists in the loaded data
+            const data = loadSolutionsFromData();
+            
+            if (!data || !data.msisdn_info || !data.msisdn_info.msisdn) {
+                return;
+            }
+            
+            const msisdnInfo = data.msisdn_info;
+            console.log('MSISDN info:', msisdnInfo);
+            
+            // Create MSISDN information section after complaint details
+            const complaintCard = document.getElementById('complaintCard');
+            let msisdnCard = document.getElementById('msisdnCard');
+            
+            if (!msisdnCard) {
+                msisdnCard = document.createElement('div');
+                msisdnCard.id = 'msisdnCard';
+                msisdnCard.className = 'complaint-card';
+                complaintCard.parentNode.insertBefore(msisdnCard, complaintCard.nextSibling);
+            }
+            
+            let msisdnHTML = `
+                <div class="complaint-header">
+                    <div class="complaint-icon">📱</div>
+                    <div class="complaint-title">
+                        <h2>MSISDN Information</h2>
+                        <p>Subscriber details for ${msisdnInfo.msisdn}</p>
+                    </div>
+                </div>
+                <div class="complaint-details-grid">
+            `;
+            
+            // Display VoLTE information if available
+            if (msisdnInfo.volte_info) {
+                const volteInfo = msisdnInfo.volte_info;
+                msisdnHTML += `
+                    <div class="detail-card">
+                        <div class="detail-label">VoLTE Status</div>
+                        <div class="detail-value">
+                            <span style="color: ${volteInfo.volte_provisioned ? '#4CAF50' : '#f44336'};">
+                                ${volteInfo.volte_provisioned ? '✅ Provisioned' : '❌ Not Provisioned'}
+                            </span>
+                        </div>
+                    </div>
+                `;
+                
+                if (volteInfo.volte_provisioned && volteInfo.district) {
+                    msisdnHTML += `
+                        <div class="detail-card">
+                            <div class="detail-label">VoLTE District</div>
+                            <div class="detail-value">${volteInfo.district}</div>
+                        </div>
+                    `;
+                }
+            }
+            
+            // Display common locations if available
+            if (msisdnInfo.common_locations && msisdnInfo.common_locations.length > 0) {
+                const locations = msisdnInfo.common_locations.slice(0, 3); // Show top 3 locations
+                msisdnHTML += `
+                    <div class="detail-card" style="grid-column: 1 / -1;">
+                        <div class="detail-label">Common Locations</div>
+                        <div class="detail-value">
+                            <div style="max-height: 120px; overflow-y: auto;">
+                `;
+                
+                locations.forEach(location => {
+                    msisdnHTML += `
+                        <div style="margin: 5px 0; padding: 8px; background: #f8f9fa; border-radius: 4px; font-size: 0.9em;">
+                            <strong>${location.SITE_NAME || 'Unknown Site'}</strong> (${location.CELL_CODE || 'Unknown'})
+                            <br><small>${location.TYPE || 'Unknown'} | ${location.DISTRICT || 'Unknown District'}</small>
+                        </div>
+                    `;
+                });
+                
+                if (msisdnInfo.common_locations.length > 3) {
+                    msisdnHTML += `<small>... and ${msisdnInfo.common_locations.length - 3} more locations</small>`;
+                }
+                
+                msisdnHTML += `
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            // Display usage summary if available
+            if (msisdnInfo.usage_data) {
+                const usage = msisdnInfo.usage_data;
+                if (usage.data_usage || usage.voice_usage || usage.sms_usage) {
+                    msisdnHTML += `
+                        <div class="detail-card">
+                            <div class="detail-label">Recent Usage</div>
+                            <div class="detail-value">
+                                ${usage.data_usage ? `Data: ${usage.data_usage}<br>` : ''}
+                                ${usage.voice_usage ? `Voice: ${usage.voice_usage}<br>` : ''}
+                                ${usage.sms_usage ? `SMS: ${usage.sms_usage}` : ''}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+            
+            msisdnHTML += `</div>`;
+            msisdnCard.innerHTML = msisdnHTML;
         }
 
         function createSolutionCard(solution, type, solutionId, container) {
