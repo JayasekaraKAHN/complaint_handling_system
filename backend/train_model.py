@@ -76,6 +76,43 @@ class UnifiedModelTrainer:
         print(f"Unified model saved to {self.model_path}")
         return True
     
+    def train_nlp_model(self):
+        """
+        Enhance model using TF-IDF and cosine similarity for more specified answers.
+        Trains on complaint data Issue Description and Solution.
+        """
+        print("Training NLP model for specified answers...")
+        try:
+            from sklearn.feature_extraction.text import TfidfVectorizer
+            from sklearn.metrics.pairwise import cosine_similarity
+        except ImportError:
+            print("scikit-learn not installed. Please install it to use NLP enhancements.")
+            return False
+
+        if self.complaint_data is None or self.complaint_data.empty:
+            print("Complaint data not loaded.")
+            return False
+
+        # Prepare data
+        issues = self.complaint_data['Issue Description'].astype(str).tolist()
+        solutions = self.complaint_data['Solution'].astype(str).tolist()
+
+        # Train TF-IDF vectorizer
+        vectorizer = TfidfVectorizer(stop_words='english')
+        X = vectorizer.fit_transform(issues)
+
+        # Save NLP model and vectorizer
+        nlp_model = {
+            'vectorizer': vectorizer,
+            'tfidf_matrix': X,
+            'issues': issues,
+            'solutions': solutions
+        }
+        with open('models/nlp_complaint_model.pkl', 'wb') as f:
+            pickle.dump(nlp_model, f)
+        print("NLP model saved to models/nlp_complaint_model.pkl")
+        return True
+
     def train(self):
         print("Starting unified model training...")
         
@@ -88,6 +125,9 @@ class UnifiedModelTrainer:
         if not self.save_unified_model():
             print("Failed to save model")
             return False
+        
+        # Train NLP model for enhanced answers
+        self.train_nlp_model()
         
         print("Unified model training completed successfully!")
         

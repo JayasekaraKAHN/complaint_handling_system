@@ -126,15 +126,9 @@
 
                     <div class="form-group">
                         <label for="signal_strength">Signal Strength</label>
-                        <select id="signal_strength" name="signal_strength">
-                            <option value="">Select signal strength</option>
-                            <option value="Excellent">Excellent (4-5 bars)</option>
-                            <option value="Good">Good (3-4 bars)</option>
-                            <option value="Fair">Fair (2-3 bars)</option>
-                            <option value="Weak">Weak (1-2 bars)</option>
-                            <option value="No Signal">No Signal (0 bars)</option>
-                        </select>
-                        <div class="field-description">Current signal strength observed</div>
+                        <input type="text" id="signal_strength" name="signal_strength"
+                            placeholder="e.g., -85 dBm, 2 bars, Weak, etc.">
+                        <div class="field-description">Current signal strength observed (in dBm, bars, or description)</div>
                     </div>
 
                     <div class="form-group">
