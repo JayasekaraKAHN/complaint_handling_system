@@ -22,6 +22,16 @@ COMPLAINT DETAILS:
 
 """
 
+    # Add VoLTE status information if available
+    volte_status = complaint_details.get('volte_status')
+    if volte_status:
+        if volte_status.get('volte_provisioned'):
+            prompt += f"VOLTE STATUS: Already provisioned for VoLTE service in {volte_status.get('district', 'unknown area')}\n"
+        else:
+            prompt += f"VOLTE STATUS: Not provisioned for VoLTE service\n"
+    
+    prompt += "\n"
+
     if similar_cases:
         prompt += "\nSIMILAR PAST CASES:\n"
         for i, case in enumerate(similar_cases[:3], 1):
@@ -62,6 +72,11 @@ IMPORTANT FORMATTING RULES:
 - Include practical implementation steps in the explanations
 - Use clear, customer-friendly language with technical accuracy
 - Focus on Sri Lankan telecom network context and common issues
+
+CRITICAL VoLTE RULES:
+- If VoLTE STATUS shows "Already provisioned for VoLTE service", DO NOT suggest enabling VoLTE or VoLTE activation
+- If VoLTE is already provisioned, focus on VoLTE troubleshooting, device settings, or network quality issues instead
+- Only suggest VoLTE enablement if VoLTE STATUS shows "Not provisioned for VoLTE service"
 
 Generate only the numbered solution paragraphs without additional headings or text:"""
 
@@ -129,6 +144,14 @@ NEW COMPLAINT ANALYSIS:
 - General Area: {complaint_details.get('location', 'N/A')}
 """
 
+    # Add VoLTE status information if available
+    volte_status = complaint_details.get('volte_status')
+    if volte_status:
+        if volte_status.get('volte_provisioned'):
+            prompt += f"- VoLTE Status: Already provisioned for VoLTE service in {volte_status.get('district', 'unknown area')}\n"
+        else:
+            prompt += f"- VoLTE Status: Not provisioned for VoLTE service\n"
+
     if location_context:
         prompt += f"\nAREA CONTEXT:\n"
         prompt += f"- Network Coverage: {location_context.get('coverage_quality', 'Unknown')}\n"
@@ -144,6 +167,11 @@ Generate solutions in this EXACT paragraph format:
 3. COMPREHENSIVE TROUBLESHOOTING: [Third approach] - Write a brief paragraph suggesting broader troubleshooting steps, explaining when to use this approach and what additional factors it addresses.
 
 4. ESCALATION RECOMMENDATION: [Final guidance] - Provide a short paragraph explaining when and how to escalate, including what information to provide to technical support for further analysis.
+
+CRITICAL VoLTE RULES:
+- If VoLTE Status shows "Already provisioned for VoLTE service", DO NOT suggest enabling VoLTE or VoLTE activation
+- If VoLTE is already provisioned, focus on VoLTE troubleshooting, device settings, or network quality issues instead
+- Only suggest VoLTE enablement if VoLTE Status shows "Not provisioned for VoLTE service"
 
 CRITICAL: Avoid mentioning any specific site names, location codes, coordinates, or numerical measurements. Use general terms like "your location", "network in this area", or "local coverage". Generate only the numbered solution paragraphs:"""
     

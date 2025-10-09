@@ -40,6 +40,11 @@ def remove_specific_locations(text: str) -> str:
     # Remove specific site names (patterns like COL313I, ABC123, etc.)
     text = re.sub(r'\b[A-Z]+\d+[A-Z]*\b', 'the area', text)
     
+    # Remove dBm range patterns (e.g., "-105 dBm to -95 dBm", "range -80dBm to -70dBm")
+    text = re.sub(r'-?\d+\s*dBm\s*to\s*-?\d+\s*dBm', 'signal strength range', text, flags=re.IGNORECASE)
+    text = re.sub(r'range\s*-?\d+\s*dBm\s*to\s*-?\d+\s*dBm', 'signal strength range', text, flags=re.IGNORECASE)
+    text = re.sub(r'between\s*-?\d+\s*dBm\s*and\s*-?\d+\s*dBm', 'signal strength range', text, flags=re.IGNORECASE)
+    
     # Remove specific numerical coordinates and measurements
     text = re.sub(r'\b\d+\.\d+\b', '', text)  # Remove decimal numbers
     text = re.sub(r'\b\d+\b', '', text)  # Remove integers
@@ -524,6 +529,17 @@ def generate_solution(msisdn: str | None, complaint_text: str, **kwargs) -> dict
     """
     handler = get_complaint_handler()
     
+    # Check VoLTE provisioning status if MSISDN is provided
+    volte_status = None
+    if msisdn:
+        try:
+            # Import here to avoid circular imports
+            from .volte_checker import check_msisdn_volte_provisioning
+            volte_status = check_msisdn_volte_provisioning(msisdn)
+        except Exception as e:
+            print(f"Error checking VoLTE status: {e}")
+            volte_status = None
+    
     complaint_details = {
         'msisdn': msisdn,  # Can be None now
         'complaint': complaint_text,
@@ -536,13 +552,42 @@ def generate_solution(msisdn: str | None, complaint_text: str, **kwargs) -> dict
         'location': kwargs.get('location'),
         'longitude': kwargs.get('longitude'),
         'latitude': kwargs.get('latitude'),
+        'volte_status': volte_status  # Add VoLTE status to complaint details
     }
     
     solution, solution_type = handler.generate_solution(complaint_details)
     
     # Parse the solution into template format
     parsed_solutions = parse_solution_to_template_format(solution)
-    
+
+    # VoLTE post-processing filter
+    volte_status = complaint_details.get('volte_status')
+    if volte_status and volte_status.get('volte_provisioned'):
+        # Remove or replace any solution suggesting enabling VoLTE
+        keywords = [
+            'enable volte', 'activate volte', 'volte activation',
+            'provision volte', 'volte should be enabled',
+            'volte must be enabled', 'volte is not enabled',
+            'volte is not activated', 'volte is not provisioned',
+            'volte not enabled', 'volte not activated', 'volte not provisioned'
+        ]
+        for key in ["primary_solution", "alternate_solution_1", "alternate_solution_2"]:
+            desc = parsed_solutions.get(key, {}).get("description", "")
+            if any(k in desc.lower() for k in keywords):
+                # Replace with a troubleshooting-focused message
+                parsed_solutions[key]["description"] = (
+                    "VoLTE is already provisioned for this MSISDN. Please focus on device settings, network quality, or other troubleshooting steps instead of enabling VoLTE."
+                )
+                parsed_solutions[key]["title"] = parsed_solutions[key].get("title", "") + " (Filtered)"
+
+    # Additional post-processing filter for technical terms
+    for key in ["primary_solution", "alternate_solution_1", "alternate_solution_2"]:
+        if key in parsed_solutions and "description" in parsed_solutions[key]:
+            # Apply the same filtering used in remove_specific_locations
+            desc = parsed_solutions[key]["description"]
+            desc = remove_specific_locations(desc)
+            parsed_solutions[key]["description"] = desc
+
     return {
         "solutions": parsed_solutions,
         "solution_type": solution_type,

@@ -9,6 +9,25 @@ class UnifiedModelTrainer:
         self.complaint_data = None
         self.location_data = None
         self.model_path = "models/unified_complaint_model.pkl"
+    
+    def clean_dataframe_for_json(self, df):
+        """
+        Clean DataFrame by replacing NaN, inf, and other non-JSON-compliant values
+        """
+        if df is None:
+            return None
+        
+        # Create a copy to avoid modifying the original
+        cleaned_df = df.copy()
+        
+        # Replace NaN values with None (which becomes null in JSON)
+        cleaned_df = cleaned_df.where(pd.notna(cleaned_df), None)
+        
+        # Replace infinite values with None
+        import numpy as np
+        cleaned_df = cleaned_df.replace([np.inf, -np.inf], None)
+        
+        return cleaned_df
         
     def load_data(self):
         print("Loading data from Excel files...")
@@ -52,27 +71,51 @@ class UnifiedModelTrainer:
     
     def save_unified_model(self):
         print("Saving unified model...")
-        
+
         # Create models directory
         os.makedirs("models", exist_ok=True)
+
+        # Enhance complaint data with VoLTE status and usage analytics if available
+        if self.complaint_data is not None:
+            enhanced_complaint_data = self.complaint_data.copy()
+            if not enhanced_complaint_data.empty:
+                from app.msisdn_dashboard import get_usage_data, check_msisdn_volte_provisioning
+                # Add columns for VoLTE status and usage analytics
+                if 'MSISDN' in enhanced_complaint_data.columns:
+                    enhanced_complaint_data['VoLTE_Status'] = enhanced_complaint_data['MSISDN'].apply(
+                        lambda msisdn: check_msisdn_volte_provisioning(msisdn) if pd.notna(msisdn) else {}
+                    )
+                    enhanced_complaint_data['Usage_Analytics'] = enhanced_complaint_data['MSISDN'].apply(
+                        lambda msisdn: get_usage_data(msisdn) if pd.notna(msisdn) else {}
+                    )
+                
+                # Clean NaN values to avoid JSON serialization issues
+                enhanced_complaint_data = self.clean_dataframe_for_json(enhanced_complaint_data)
+        else:
+            enhanced_complaint_data = self.complaint_data
         
+        # Clean location data as well
+        cleaned_location_data = self.clean_dataframe_for_json(self.location_data) if self.location_data is not None else self.location_data
+
         # Create unified model data
         model_data = {
-            'complaint_data': self.complaint_data,
-            'location_data': self.location_data,
+            'complaint_data': enhanced_complaint_data,
+            'location_data': cleaned_location_data,
             'metadata': {
                 'created_date': datetime.now().isoformat(),
-                'complaint_records': len(self.complaint_data) if self.complaint_data is not None else 0,
-                'location_records': len(self.location_data) if self.location_data is not None else 0,
+                'complaint_records': len(enhanced_complaint_data) if enhanced_complaint_data is not None else 0,
+                'location_records': len(cleaned_location_data) if cleaned_location_data is not None else 0,
                 'model_type': 'unified_simple_model',
-                'version': '1.0'
+                'version': '1.1',
+                'includes_volte_status': True,
+                'includes_usage_analytics': True
             }
         }
-        
+
         # Save the unified model
         with open(self.model_path, 'wb') as f:
             pickle.dump(model_data, f)
-        
+
         print(f"Unified model saved to {self.model_path}")
         return True
     
