@@ -2,6 +2,7 @@ import pandas as pd
 import os
 import pickle
 import json
+import re
 from datetime import datetime
 
 class UnifiedModelTrainer:
@@ -13,6 +14,7 @@ class UnifiedModelTrainer:
     def clean_dataframe_for_json(self, df):
         """
         Clean DataFrame by replacing NaN, inf, and other non-JSON-compliant values
+        Also remove dBm range terms from text fields
         """
         if df is None:
             return None
@@ -27,7 +29,35 @@ class UnifiedModelTrainer:
         import numpy as np
         cleaned_df = cleaned_df.replace([np.inf, -np.inf], None)
         
+        # Clean dBm range terms from text columns
+        import re
+        for column in cleaned_df.columns:
+            if cleaned_df[column].dtype == 'object':  # Text columns
+                cleaned_df[column] = cleaned_df[column].apply(
+                    lambda x: self.remove_dbm_ranges(str(x)) if x is not None else x
+                )
+        
         return cleaned_df
+    
+    def remove_dbm_ranges(self, text):
+        """
+        Remove dBm range patterns from text
+        """
+        if not text or text == 'None':
+            return text
+        
+        # Remove dBm range patterns (e.g., "-105 dBm to -95 dBm", "range -80dBm to -70dBm")
+        text = re.sub(r'-?\d+\s*dBm\s*to\s*-?\d+\s*dBm', 'signal strength range', text, flags=re.IGNORECASE)
+        text = re.sub(r'range\s*-?\d+\s*dBm\s*to\s*-?\d+\s*dBm', 'signal strength range', text, flags=re.IGNORECASE)
+        text = re.sub(r'between\s*-?\d+\s*dBm\s*and\s*-?\d+\s*dBm', 'signal strength range', text, flags=re.IGNORECASE)
+        
+        # Also remove individual dBm values
+        text = re.sub(r'-?\d+\s*dBm\b', 'signal level', text, flags=re.IGNORECASE)
+        
+        # Clean up multiple spaces
+        text = re.sub(r'\s+', ' ', text)
+        
+        return text.strip()
         
     def load_data(self):
         print("Loading data from Excel files...")

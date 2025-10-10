@@ -314,6 +314,18 @@
             border-left: 3px solid var(--border-color);
         }
 
+        .solution-description ul {
+            margin: 0;
+            padding-left: 20px;
+            list-style-type: disc;
+        }
+
+        .solution-description li {
+            margin-bottom: 8px;
+            line-height: 1.6;
+            color: var(--text-dark);
+        }
+
         .solution-steps {
             background: var(--background-light);
             border-radius: 10px;
@@ -763,23 +775,85 @@
             const sitesCount = locationInfo.total_nearby_sites || 0;
             const coverageQuality = locationInfo.location_analysis?.coverage_quality || 'Unknown';
             
+            // Check for RSRP analysis data
+            const rsrpAnalysis = locationInfo.rsrp_analysis || {};
+            const overallAnalysis = locationInfo.overall_analysis || {};
+            
             console.log('Nearest site:', nearest);
             console.log('Sites count:', sitesCount);
             console.log('Coverage quality:', coverageQuality);
+            console.log('RSRP Analysis:', rsrpAnalysis);
             
             let locationHTML = `
                 <div class="complaint-header">
                     <div class="complaint-icon">📍</div>
                     <div class="complaint-title">
-                        <h2>Nearby Cell Sites</h2>
+                        <h2>Network Coverage & RSRP Analysis</h2>
                         <p>${sitesCount} sites found within 2km radius</p>
                     </div>
-                    <div class="status-badge" style="background: ${coverageQuality === 'Good' ? '#d4edda' : coverageQuality === 'Limited' ? '#fff3cd' : '#f8d7da'}; color: ${coverageQuality === 'Good' ? '#155724' : coverageQuality === 'Limited' ? '#856404' : '#721c24'};">
+                    <div class="status-badge" style="background: ${coverageQuality === 'Good' || coverageQuality === 'Excellent' ? '#d4edda' : coverageQuality === 'Limited' || coverageQuality === 'Fair' ? '#fff3cd' : '#f8d7da'}; color: ${coverageQuality === 'Good' || coverageQuality === 'Excellent' ? '#155724' : coverageQuality === 'Limited' || coverageQuality === 'Fair' ? '#856404' : '#721c24'};">
                         ${coverageQuality} Coverage
                     </div>
                 </div>
-                <div class="complaint-details-grid">
             `;
+            
+            // Add RSRP Analysis Section if available
+            if (overallAnalysis.signal_quality_logic || rsrpAnalysis.average_excellent_signal_percentage !== undefined) {
+                locationHTML += `
+                    <div style="background: linear-gradient(135deg, #e3f2fd 0%, #ffffff 100%); border-radius: 10px; padding: 20px; margin-bottom: 20px; border-left: 5px solid #2196F3;">
+                        <h3 style="color: #1976d2; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                            <span style="font-size: 1.5em;">📊</span> RSRP Signal Strength Analysis
+                        </h3>
+                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+                `;
+                
+                // Display RSRP Logic Result
+                if (overallAnalysis.signal_quality_logic) {
+                    locationHTML += `
+                        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #4CAF50;">
+                            <div style="font-weight: 600; color: #666; font-size: 0.9rem; margin-bottom: 8px;">RSRP LOGIC RESULT</div>
+                            <div style="color: #333; font-weight: 500;">${overallAnalysis.signal_quality_logic}</div>
+                        </div>
+                    `;
+                }
+                
+                // Display Signal Quality Percentages
+                if (rsrpAnalysis.good_signal_sites_percentage !== undefined) {
+                    const goodSitesPercentage = rsrpAnalysis.good_signal_sites_percentage;
+                    const qualityColor = goodSitesPercentage > 70 ? '#4CAF50' : goodSitesPercentage > 40 ? '#FF9800' : '#f44336';
+                    locationHTML += `
+                        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid ${qualityColor};">
+                            <div style="font-weight: 600; color: #666; font-size: 0.9rem; margin-bottom: 8px;">SITES WITH GOOD SIGNAL</div>
+                            <div style="color: ${qualityColor}; font-weight: 500; font-size: 1.2em;">${goodSitesPercentage}%</div>
+                        </div>
+                    `;
+                }
+                
+                // Display RSRP Level Breakdown
+                if (rsrpAnalysis.average_excellent_signal_percentage !== undefined) {
+                    locationHTML += `
+                        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #8BC34A;">
+                            <div style="font-weight: 600; color: #666; font-size: 0.9rem; margin-bottom: 8px;">EXCELLENT SIGNAL (>-105dBm)</div>
+                            <div style="color: #4CAF50; font-weight: 500;">${rsrpAnalysis.average_excellent_signal_percentage}%</div>
+                        </div>
+                        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #FFC107;">
+                            <div style="font-weight: 600; color: #666; font-size: 0.9rem; margin-bottom: 8px;">GOOD SIGNAL (-105~-110dBm)</div>
+                            <div style="color: #FF9800; font-weight: 500;">${rsrpAnalysis.average_good_signal_percentage}%</div>
+                        </div>
+                        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 4px solid #f44336;">
+                            <div style="font-weight: 600; color: #666; font-size: 0.9rem; margin-bottom: 8px;">POOR SIGNAL (<-115dBm)</div>
+                            <div style="color: #f44336; font-weight: 500;">${rsrpAnalysis.average_poor_signal_percentage}%</div>
+                        </div>
+                    `;
+                }
+                
+                locationHTML += `
+                        </div>
+                    </div>
+                `;
+            }
+            
+            locationHTML += '<div class="complaint-details-grid">';
             
             if (nearest) {
                 locationHTML += `
@@ -842,6 +916,30 @@
                     <div class="detail-card">
                         <div class="detail-label">Coverage Status</div>
                         <div class="detail-value">No nearby cell sites found within 2km</div>
+                    </div>
+                `;
+            }
+            
+            // Add RSRP Recommendations if available
+            if (overallAnalysis.recommendations && overallAnalysis.recommendations.length > 0) {
+                locationHTML += `
+                    <div class="detail-card" style="grid-column: 1 / -1;">
+                        <div class="detail-label">RSRP-Based Recommendations</div>
+                        <div class="detail-value">
+                            <div style="background: #f0f8ff; padding: 10px; border-radius: 6px;">
+                `;
+                
+                overallAnalysis.recommendations.forEach(rec => {
+                    locationHTML += `
+                        <div style="margin: 5px 0; padding: 6px 10px; background: white; border-radius: 4px; border-left: 3px solid #2196F3;">
+                            <span style="color: #1976d2;">•</span> ${rec}
+                        </div>
+                    `;
+                });
+                
+                locationHTML += `
+                            </div>
+                        </div>
                     </div>
                 `;
             }
@@ -958,6 +1056,25 @@
             msisdnCard.innerHTML = msisdnHTML;
         }
 
+        // Helper function to convert paragraph text to bullet points
+        function convertToBulletPoints(text) {
+            if (!text) return '<p>No description available</p>';
+            
+            // Split text into sentences and filter out empty ones
+            const sentences = text.split(/[.!?]+/)
+                .map(sentence => sentence.trim())
+                .filter(sentence => sentence.length > 0);
+            
+            if (sentences.length <= 1) {
+                // If only one sentence or less, display as regular paragraph
+                return `<p>${text}</p>`;
+            }
+            
+            // Convert to bullet points
+            const bulletPoints = sentences.map(sentence => `<li>${sentence.trim()}.</li>`).join('');
+            return `<ul>${bulletPoints}</ul>`;
+        }
+
         function createSolutionCard(solution, type, solutionId, container) {
             if (!solution) return;
             
@@ -983,7 +1100,7 @@
                     </div>
                 </div>
                 <div class="solution-content">
-                    <p class="solution-description">${solution.description || 'No description available'}</p>
+                    <div class="solution-description">${convertToBulletPoints(solution.description)}</div>
                     <div class="solution-steps">
                         ${(solution.steps || []).map((step, index) => `
                             <div class="step-item">

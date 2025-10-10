@@ -58,7 +58,75 @@ def remove_specific_locations(text: str) -> str:
     
     return text.strip()
 
-def format_solution_paragraphs(solution_text: str, solution_type: str) -> str:
+def enhance_solution_with_averages(text: str, similar_cases: Optional[List[Dict]] = None) -> str:
+    """
+    Replace technical patterns with average values from similar cases
+    """
+    if not text or not text.strip():
+        return text
+    
+    # Calculate averages from similar cases if available
+    avg_signal_quality = "good"
+    avg_improvement = "30"
+    
+    if similar_cases:
+        # Extract signal quality values
+        signal_qualities = []
+        improvements = []
+        
+        for case in similar_cases:
+            # Get signal quality
+            signal_quality = case.get('Quality of Signal', '') or case.get('Qulity of Signal', '')
+            if signal_quality and isinstance(signal_quality, str):
+                if 'good' in signal_quality.lower():
+                    signal_qualities.append('good')
+                elif 'fair' in signal_quality.lower():
+                    signal_qualities.append('fair')
+                elif 'poor' in signal_quality.lower():
+                    signal_qualities.append('poor')
+            
+            # Extract improvement percentages from solutions
+            solution = str(case.get('Solution', ''))
+            improvement_matches = re.findall(r'(\d+)%', solution)
+            if improvement_matches:
+                try:
+                    improvements.extend([int(x) for x in improvement_matches if 10 <= int(x) <= 90])
+                except ValueError:
+                    continue
+        
+        # Calculate most common signal quality
+        if signal_qualities:
+            from collections import Counter
+            most_common_quality = Counter(signal_qualities).most_common(1)[0][0]
+            avg_signal_quality = most_common_quality
+        
+        # Calculate average improvement
+        if improvements:
+            avg_improvement = str(int(sum(improvements) / len(improvements)))
+    
+    # Replace problematic patterns
+    # Pattern: "- dBm in the serving cell -the area-M-the area-the area, this solution improved download speeds by up to %"
+    pattern1 = re.compile(r'-\s*dBm\s+in\s+the\s+serving\s+cell\s*-?the\s+area-?[A-Z]*-?the\s+area-?the\s+area,?\s*this\s+solution\s+improved\s+download\s+speeds\s+by\s+up\s+to\s*%?', re.IGNORECASE)
+    text = pattern1.sub(f'with {avg_signal_quality} signal quality in the serving area, this solution improved download speeds by up to {avg_improvement}%', text)
+    
+    # Pattern: "- dBm to - dBm"
+    pattern2 = re.compile(r'-\s*dBm\s+to\s+-\s*dBm', re.IGNORECASE)
+    text = pattern2.sub('signal strength range', text)
+    
+    # Pattern: fragments like "-the area-M-the area"
+    pattern3 = re.compile(r'-?the\s+area-?[A-Z]*-?the\s+area', re.IGNORECASE)
+    text = pattern3.sub('the coverage area', text)
+    
+    # Pattern: "up to %" without number
+    pattern4 = re.compile(r'up\s+to\s*%', re.IGNORECASE)
+    text = pattern4.sub(f'up to {avg_improvement}%', text)
+    
+    # Clean up multiple spaces
+    text = re.sub(r'\s+', ' ', text)
+    
+    return text.strip()
+
+def format_solution_paragraphs(solution_text: str, solution_type: str, similar_cases: Optional[List[Dict]] = None) -> str:
     """
     Format solution text into proper paragraph format and remove specific locations
     """
@@ -67,6 +135,9 @@ def format_solution_paragraphs(solution_text: str, solution_type: str) -> str:
     
     # Clean the solution text of specific locations and numbers
     cleaned_text = remove_specific_locations(solution_text.strip())
+    
+    # Enhance with averages from similar cases
+    cleaned_text = enhance_solution_with_averages(cleaned_text, similar_cases)
     
     # Ensure paragraph format is consistent
     paragraphs = []
@@ -261,42 +332,113 @@ class SimpleComplaintHandler:
         location_context = None
         
         if longitude is not None and latitude is not None:
-            # Find closest location data point
-            min_distance = float('inf')
-            closest_location = None
-            
-            for _, row in self.location_data.iterrows():
-                try:
-                    row_lon = float(row.get('Lon', 0))
-                    row_lat = float(row.get('Lat', 0))
-                    
-                    # Simple distance calculation
-                    distance = ((longitude - row_lon) ** 2 + (latitude - row_lat) ** 2) ** 0.5
-                    
-                    if distance < min_distance and distance < 0.01:  # Within ~1km
-                        min_distance = distance
-                        closest_location = row.to_dict()
-                except (ValueError, TypeError):
-                    continue
-            
-            if closest_location:
-                location_context = {
-                    'coverage_quality': 'Good' if float(str(closest_location.get('RSRP >-105dBm (%)', '0')).replace('%', '')) > 70 else 'Poor',
-                    'signal_distribution': f"Good coverage, Fair coverage, Poor coverage based on area signal quality"
-                }
+            # Use enhanced location analysis from location_finder
+            try:
+                from .location_finder import get_rsrp_utilization_analysis
+                rsrp_analysis = get_rsrp_utilization_analysis(latitude, longitude, 2.0)
+                
+                if not rsrp_analysis.get("error") and rsrp_analysis.get("overall_analysis"):
+                    overall = rsrp_analysis["overall_analysis"]
+                    location_context = {
+                        'coverage_quality': overall.get("coverage_summary", "Unknown"),
+                        'signal_distribution': overall.get("performance_summary", "Unknown"),
+                        'rsrp_percentage': overall.get("average_good_rsrp_percentage", 0),
+                        'utilization_percentage': overall.get("average_high_utilization_percentage", 0),
+                        'recommendations': overall.get("recommendations", [])
+                    }
+                else:
+                    # Fallback to original logic if RSRP analysis fails
+                    location_context = self._get_fallback_location_context(longitude, latitude)
+            except Exception as e:
+                print(f"Error in enhanced location analysis: {e}")
+                location_context = self._get_fallback_location_context(longitude, latitude)
         
         # Try to find by location name if coordinates not available
         if not location_context and location_name:
-            for _, row in self.location_data.iterrows():
-                site_name = str(row.get('Site Name', '')).lower()
-                if location_name.lower() in site_name or site_name in location_name.lower():
-                    location_context = {
-                        'coverage_quality': 'Good' if float(str(row.get('RSRP >-105dBm (%)', '0')).replace('%', '')) > 70 else 'Poor',
-                        'signal_distribution': f"Good coverage, Fair coverage, Poor coverage based on area signal quality"
-                    }
-                    break
+            location_context = self._get_location_context_by_name(location_name)
         
         return location_context
+    
+    def _get_fallback_location_context(self, longitude: float, latitude: float) -> Optional[Dict]:
+        """Fallback method using original location data if enhanced analysis fails"""
+        if self.location_data is None or self.location_data.empty:
+            return None
+            
+        min_distance = float('inf')
+        closest_location = None
+        
+        for _, row in self.location_data.iterrows():
+            try:
+                row_lon = float(row.get('Lon', 0))
+                row_lat = float(row.get('Lat', 0))
+                
+                # Simple distance calculation
+                distance = ((longitude - row_lon) ** 2 + (latitude - row_lat) ** 2) ** 0.5
+                
+                if distance < min_distance and distance < 0.01:  # Within ~1km
+                    min_distance = distance
+                    closest_location = row.to_dict()
+            except (ValueError, TypeError):
+                continue
+        
+        if closest_location:
+            # Apply new RSRP logic: if avg(Level1+Level2) > avg(Level3+Level4) then Good
+            level_1 = self._safe_percentage_value(closest_location.get('RSRP_Level_1', 0))
+            level_2 = self._safe_percentage_value(closest_location.get('RSRP_Level_2', 0))
+            level_3 = self._safe_percentage_value(closest_location.get('RSRP_Level_3', 0))
+            level_4 = self._safe_percentage_value(closest_location.get('RSRP_Level_4', 0))
+            
+            good_avg = (level_1 + level_2) / 2 if (level_1 + level_2) > 0 else 0
+            poor_avg = (level_3 + level_4) / 2 if (level_3 + level_4) > 0 else 0
+            
+            coverage_quality = 'Good' if good_avg > poor_avg else 'Poor'
+            
+            return {
+                'coverage_quality': coverage_quality,
+                'signal_distribution': f"Signal levels: Excellent {level_1}%, Good {level_2}%, Fair {level_3}%, Poor {level_4}%",
+                'rsrp_percentage': f"Signal quality analysis: Good signals avg {good_avg:.1f}% vs Poor signals avg {poor_avg:.1f}%",
+                'utilization_percentage': 'Network utilization data not available',
+                'recommendations': ['Signal analysis based on new RSRP level criteria']
+            }
+        return None
+    
+    def _safe_percentage_value(self, value) -> float:
+        """Safely convert a value to percentage float."""
+        try:
+            if isinstance(value, (int, float)):
+                return float(value)
+            str_val = str(value).replace('%', '').strip()
+            return float(str_val) if str_val else 0.0
+        except (ValueError, TypeError):
+            return 0.0
+    
+    def _get_location_context_by_name(self, location_name: str) -> Optional[Dict]:
+        """Get location context by location name"""
+        if self.location_data is None or self.location_data.empty:
+            return None
+            
+        for _, row in self.location_data.iterrows():
+            site_name = str(row.get('Site Name', '')).lower()
+            if location_name.lower() in site_name or site_name in location_name.lower():
+                # Apply new RSRP logic
+                level_1 = self._safe_percentage_value(row.get('RSRP_Level_1', 0))
+                level_2 = self._safe_percentage_value(row.get('RSRP_Level_2', 0))
+                level_3 = self._safe_percentage_value(row.get('RSRP_Level_3', 0))
+                level_4 = self._safe_percentage_value(row.get('RSRP_Level_4', 0))
+                
+                good_avg = (level_1 + level_2) / 2 if (level_1 + level_2) > 0 else 0
+                poor_avg = (level_3 + level_4) / 2 if (level_3 + level_4) > 0 else 0
+                
+                coverage_quality = 'Good' if good_avg > poor_avg else 'Poor'
+                
+                return {
+                    'coverage_quality': coverage_quality,
+                    'signal_distribution': f"Signal levels: Excellent {level_1}%, Good {level_2}%, Fair {level_3}%, Poor {level_4}%",
+                    'rsrp_percentage': f"Signal quality analysis: Good signals avg {good_avg:.1f}% vs Poor signals avg {poor_avg:.1f}%",
+                    'utilization_percentage': 'Network utilization data not available',
+                    'recommendations': ['Location-based signal analysis using new RSRP criteria']
+                }
+        return None
     
     def find_similar_complaints(self, complaint_text: str, top_n: int = 5) -> List[Dict]:
         """Find similar complaints with different conditions"""
@@ -385,11 +527,11 @@ class SimpleComplaintHandler:
             if location_context and len(similar_complaints) >= 3:
                 prompt = create_complaint_solution_prompt(complaint_details, similar_complaints, location_context)
                 solution = self.call_ollama_llm(prompt)
-                return format_solution_paragraphs(solution, "comprehensive_analysis"), "comprehensive_analysis"
+                return format_solution_paragraphs(solution, "comprehensive_analysis", similar_complaints), "comprehensive_analysis"
             else:
                 prompt = create_pattern_analysis_prompt(complaint_text, similar_complaints)
                 solution = self.call_ollama_llm(prompt)
-                return format_solution_paragraphs(solution, "pattern_analysis"), "pattern_analysis"
+                return format_solution_paragraphs(solution, "pattern_analysis", similar_complaints), "pattern_analysis"
         
         # Step 3: New complaint - use LLM with location context
         prompt = create_new_complaint_prompt(complaint_details, location_context)
@@ -557,6 +699,9 @@ def generate_solution(msisdn: str | None, complaint_text: str, **kwargs) -> dict
     
     solution, solution_type = handler.generate_solution(complaint_details)
     
+    # Get similar cases for enhancement
+    similar_cases = handler.find_similar_complaints(complaint_text, top_n=5)
+    
     # Parse the solution into template format
     parsed_solutions = parse_solution_to_template_format(solution)
 
@@ -580,12 +725,13 @@ def generate_solution(msisdn: str | None, complaint_text: str, **kwargs) -> dict
                 )
                 parsed_solutions[key]["title"] = parsed_solutions[key].get("title", "") + " (Filtered)"
 
-    # Additional post-processing filter for technical terms
+    # Additional post-processing filter for technical terms and enhancement with averages
     for key in ["primary_solution", "alternate_solution_1", "alternate_solution_2"]:
         if key in parsed_solutions and "description" in parsed_solutions[key]:
-            # Apply the same filtering used in remove_specific_locations
+            # Apply filtering and enhancement
             desc = parsed_solutions[key]["description"]
             desc = remove_specific_locations(desc)
+            desc = enhance_solution_with_averages(desc, similar_cases)
             parsed_solutions[key]["description"] = desc
 
     return {

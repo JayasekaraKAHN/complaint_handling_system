@@ -1,5 +1,8 @@
 import sys
 import os
+import math
+import numpy as np
+import pandas as pd
 from fastapi import FastAPI, Request, Query
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
@@ -8,6 +11,30 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+
+def clean_json_data(obj):
+    """
+    Recursively clean data to make it JSON-serializable by handling NaN, inf, and numpy types
+    """
+    if isinstance(obj, dict):
+        return {k: clean_json_data(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [clean_json_data(v) for v in obj]
+    elif isinstance(obj, np.integer):
+        return int(obj)
+    elif isinstance(obj, np.floating):
+        val = float(obj)
+        if math.isnan(val) or math.isinf(val):
+            return None
+        return val
+    elif isinstance(obj, float):
+        if math.isnan(obj) or math.isinf(obj):
+            return None
+        return obj
+    elif pd.isna(obj):
+        return None
+    else:
+        return obj
 
 # Add the backend directory to Python path
 backend_dir = os.path.dirname(os.path.abspath(__file__))
@@ -53,6 +80,18 @@ class ComplaintRequest(BaseModel):
     location: str | None = None
     longitude: float | None = None
     latitude: float | None = None
+    
+    def model_post_init(self, __context):
+        """Clean and validate coordinates after model initialization"""
+        import math
+        # Clean longitude
+        if self.longitude is not None:
+            if math.isnan(self.longitude) or math.isinf(self.longitude):
+                self.longitude = None
+        # Clean latitude  
+        if self.latitude is not None:
+            if math.isnan(self.latitude) or math.isinf(self.latitude):
+                self.latitude = None
 
 # ----------------- Routes -----------------
 @app.get("/", response_class=HTMLResponse)
@@ -80,31 +119,9 @@ async def api_msisdn_dashboard_route(msisdn: str = ""):
                 print(f"Error in result: {result['error']}")  # Debug logging
                 return JSONResponse({"error": result["error"]}, status_code=404)
             print(f"Returning result with Usage_Data: {'Usage_Data' in result if isinstance(result, dict) else 'Not a dict'}")  # Debug logging
-            # Convert any numpy types to native Python types for JSON serialization
-            import numpy as np
-            import math
-            def convert_types(obj):
-                if isinstance(obj, dict):
-                    return {k: convert_types(v) for k, v in obj.items()}
-                elif isinstance(obj, list):
-                    return [convert_types(v) for v in obj]
-                elif isinstance(obj, np.integer):
-                    return int(obj)
-                elif isinstance(obj, np.floating):
-                    val = float(obj)
-                    # Handle NaN and infinite values
-                    if math.isnan(val) or math.isinf(val):
-                        return None
-                    return val
-                elif isinstance(obj, float):
-                    # Handle regular Python float NaN/inf values
-                    if math.isnan(obj) or math.isinf(obj):
-                        return None
-                    return obj
-                else:
-                    return obj
-
-            result_serializable = convert_types(result)
+            
+            # Clean result data for JSON serialization
+            result_serializable = clean_json_data(result)
             return JSONResponse({"result": result_serializable})
         
         # Return empty response for now - can be enhanced later
@@ -140,11 +157,22 @@ async def get_solution(req: ComplaintRequest):
     Receives complaint input from frontend, generates personalized solution.
     """
     try:
+        # Clean input coordinates to handle NaN values
+        import math
+        longitude = req.longitude
+        latitude = req.latitude
+        
+        # Convert NaN or inf values to None
+        if longitude is not None and (math.isnan(longitude) or math.isinf(longitude)):
+            longitude = None
+        if latitude is not None and (math.isnan(latitude) or math.isinf(latitude)):
+            latitude = None
+        
         # Get location information if coordinates are provided
         location_info = None
-        if req.latitude and req.longitude:
+        if latitude and longitude:
             try:
-                location_info = get_location_info_for_complaint(req.latitude, req.longitude)
+                location_info = get_location_info_for_complaint(latitude, longitude)
             except Exception as loc_error:
                 print(f"Location lookup error: {loc_error}")
                 location_info = {"error": f"Location lookup failed: {str(loc_error)}"}
@@ -160,19 +188,22 @@ async def get_solution(req: ComplaintRequest):
             past_data_analysis=req.past_data_analysis,
             indoor_outdoor_coverage_issue=req.indoor_outdoor_coverage_issue,
             location=req.location,
-            longitude=req.longitude,
-            latitude=req.latitude,
+            longitude=longitude,  # Use cleaned longitude
+            latitude=latitude,    # Use cleaned latitude
         )
 
+        # Clean solution data for JSON serialization
+        cleaned_solution_data = clean_json_data(solution_data)
+
         response_data = {
-            "solutions": solution_data["solutions"],
-            "solution_type": solution_data["solution_type"],
+            "solutions": cleaned_solution_data.get("solutions") if isinstance(cleaned_solution_data, dict) else solution_data.get("solutions"),
+            "solution_type": cleaned_solution_data.get("solution_type") if isinstance(cleaned_solution_data, dict) else solution_data.get("solution_type"),
             "status": "success"
         }
         
         # Add location information if available
         if location_info:
-            response_data["location_info"] = location_info
+            response_data["location_info"] = clean_json_data(location_info)
 
         return JSONResponse(response_data)
     
